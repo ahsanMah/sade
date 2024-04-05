@@ -1,6 +1,7 @@
 import functools
 
 # The above cannot be `from sade.models` as that does not populate the global _MODELS dict
+import os
 from typing import Tuple, Union
 
 import numpy as np
@@ -338,6 +339,9 @@ class SegResNetpp(registry.BaseScoreModel):
 
 @registry.register_model(name="extended")
 class ExtendedModel (registry.BaseScoreModel):
+
+
+
     def __init__(
         self,
         config,
@@ -348,62 +352,66 @@ class ExtendedModel (registry.BaseScoreModel):
         # upsample_mode: Union[UpsampleMode, str] = UpsampleMode.NONTRAINABLE,
     ): 
 
-    super().__init__(config)
+        super().__init__(config)
 
-    def setup_downsize_model():
-        downsize_model = SegResNetpp(config.inner_model)
-        checkpoint_paths = os.path.join(config.training.pretrain_dir, "checkpoint.pth")
-        ema = ExponentialMovingAverage(small_model.parameters(), decay=config.inner_model.ema_rate)
+        downsize_model = self.setup_downsize_model(config.inner_model)
+
+        self.data = config.data
+        self.in_channels = self.data.num_channels
+        self.out_channels = self.data.num_channels
+        self.conv_size = 3 #Hardcoded kernel size per discussion
+
+        # self.resblock_type = resblock_type = config.model.resblock_type.lower()
+        # assert resblock_type in ["segresnet", "biggan"], ValueError(
+        #     f"resblock type {resblock_type} unrecognized."
+        # )
+
+        # # assert embedding_type in ["fourier", "positional"]
+
+        # self.resblock_pp = config.model.resblock_pp
+        # self.act = config.model.act  # get_act_layer(act)
+
+        # if resblock_type == "segresnet":
+        #     ResBlockpp = functools.partial(
+        #         layerspp.SegResBlockpp,
+        #         act=self.act,
+        #         kernel_size=self.conv_size,
+        #         resblock_pp=self.resblock_pp,
+        #         dilation=self.dilation,
+        #         jit=config.model.jit,
+        #         norm=self.norm,
+        #         spatial_dims=self.spatial_dims,
+        #     )
+        # elif resblock_type == "biggan":
+        #     ResBlockpp = functools.partial(
+        #         layerspp.ResnetBlockBigGANpp,
+        #         act=self.act,
+        #         kernel_size=self.conv_size,
+        #         spatial_dims=self.spatial_dims,
+        #     )
+
+        self.in_block = torch.nn.Conv3d(in_channels=self.in_channels,out_channels=self.out_channels,
+                                        kernel_size=self.conv_size, stride=2)
+        self.prev_model = downsize_model
+        self.upsample_block = torch.nn.Upsample()
+        self.out_block = torch.nn.Conv3d(in_channels=self.out_channels, out_channels=self.out_channels, kernel_size=self.conv_size)
+    
+    def setup_downsize_model(self, config):
+        downsize_model = SegResNetpp(config)
+        checkpoint_path = config.training.pretrained_checkpoint
+        ema = ExponentialMovingAverage(downsize_model.parameters(), decay=config.model.ema_rate)
         state = dict(model=downsize_model, ema=ema, step=0)
-        optimize_fn = optimization_manager(state, config.finetuning)
-        state = utils.restore_pretrained_weights(checkpoint_paths, state, config.device)
+        state = utils.restore_pretrained_weights(checkpoint_path, state, config.device)
         return state['model']
-
-    downsize_model = setup_downsize_model()
-
-    self.in_channels = self.data.num_channels
-    self.out_channels = self.data.num_channels
-    self.conv_size = 3 #Hardcoded kernel size per discussion
-
-    self.resblock_type = resblock_type = config.model.resblock_type.lower()
-    assert resblock_type in ["segresnet", "biggan"], ValueError(
-        f"resblock type {resblock_type} unrecognized."
-    )
-
-    assert embedding_type in ["fourier", "positional"]
-
-    self.resblock_pp = config.model.resblock_pp
-    self.act = config.model.act  # get_act_layer(act)
-
-    if resblock_type == "segresnet":
-        ResBlockpp = functools.partial(
-            layerspp.SegResBlockpp,
-            act=self.act,
-            kernel_size=self.conv_size,
-            resblock_pp=self.resblock_pp,
-            dilation=self.dilation,
-            jit=config.model.jit,
-            norm=self.norm,
-            spatial_dims=self.spatial_dims,
-        )
-    elif resblock_type == "biggan":
-        ResBlockpp = functools.partial(
-            layerspp.ResnetBlockBigGANpp,
-            act=self.act,
-            kernel_size=self.conv_size,
-            spatial_dims=self.spatial_dims,
-        )
-
-    self.in_block = torch.nn.Conv3d(in_channels=self.in_channels, out_channels=self.out_channels, kernel_size=self.conv_size, stride=2)
-    self.prev_model = small_model
-    self.upsample_block = torch.nn.Upsample()
-    self.out_block = torch.nn.Conv3d(in_channels=self.upsample_block.out_channels, out_channels=self.in_channels, kernel_size=self.conv_size)
-
-    def forward(self, x):
+    
+    def forward(self, x, t):
+        print(x.shape)
         x = self.in_block(x)
-        x = self.prev_model(x)
+        print(x.shape)
+        x = self.prev_model(x, t)
         x = self.upsample_block(x)
         x = self.out_block(x)
+        
         return x
 
 

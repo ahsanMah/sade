@@ -1,7 +1,9 @@
 """Training NCSN++ on Brains with VE SDE.
    Keeping it consistent with CelebaHQ config from Song
 """
+import ml_collections
 from sade.configs.default_brain_configs import get_default_configs
+from sade.configs.ve.biggan_config import get_config as get_inner_model_config
 
 
 def get_config():
@@ -75,29 +77,6 @@ def get_config():
     # model.sigma_min = 0.09
 
     # inner model
-    config.inner_model = inner_model = ml_collections.ConfigDict()
-    # inner_model = config.inner_model
-    inner_model.name = "ncsnpp3d"
-    inner_model.resblock_type = "biggan"
-    inner_model.act = "memswish"
-    inner_model.scale_by_sigma = True
-    inner_model.ema_rate = 0.9999
-    inner_model.nf = 24
-    inner_model.blocks_down = (2, 2, 2, 2, 4)
-    inner_model.blocks_up = (1, 1, 1, 1)
-    inner_model.time_embedding_sz = 64
-    inner_model.init_scale = 0.0
-    inner_model.num_scales = 2000
-    inner_model.conv_size = 3
-    inner_model.self_attention = False
-    inner_model.dropout = 0.0
-    inner_model.resblock_pp = True
-    inner_model.embedding_type = "fourier"
-    inner_model.fourier_scale = 2.0
-    inner_model.learnable_embedding = True
-    inner_model.norm_num_groups = 8
-
-    inner_model.sigma_max = 1508
-    inner_model.sigma_min = 0.09
+    config.inner_model = get_inner_model_config()
 
     return config
