@@ -342,18 +342,57 @@ class ExtendedModel (registry.BaseScoreModel):
         self,
         config,
         #in config, add in_channels, out_channels, kernel_size for extension
-        small_model, #Can be put into the correct format using downsize_model.setup_downsize_model function
+        # small_model, #Can be put into the correct format using downsize_model.setup_downsize_model function
         spatial_dims: int = 3,
         # use_conv_final: bool = True,
         # upsample_mode: Union[UpsampleMode, str] = UpsampleMode.NONTRAINABLE,
-
     ): 
 
     super().__init__(config)
 
+    def setup_downsize_model():
+        downsize_model = SegResNetpp(config.inner_model)
+        checkpoint_paths = os.path.join(config.training.pretrain_dir, "checkpoint.pth")
+        ema = ExponentialMovingAverage(small_model.parameters(), decay=config.inner_model.ema_rate)
+        state = dict(model=downsize_model, ema=ema, step=0)
+        optimize_fn = optimization_manager(state, config.finetuning)
+        state = utils.restore_pretrained_weights(checkpoint_paths, state, config.device)
+        return state['model']
+
+    downsize_model = setup_downsize_model()
+
     self.in_channels = self.data.num_channels
     self.out_channels = self.data.num_channels
     self.conv_size = 3 #Hardcoded kernel size per discussion
+
+    self.resblock_type = resblock_type = config.model.resblock_type.lower()
+    assert resblock_type in ["segresnet", "biggan"], ValueError(
+        f"resblock type {resblock_type} unrecognized."
+    )
+
+    assert embedding_type in ["fourier", "positional"]
+
+    self.resblock_pp = config.model.resblock_pp
+    self.act = config.model.act  # get_act_layer(act)
+
+    if resblock_type == "segresnet":
+        ResBlockpp = functools.partial(
+            layerspp.SegResBlockpp,
+            act=self.act,
+            kernel_size=self.conv_size,
+            resblock_pp=self.resblock_pp,
+            dilation=self.dilation,
+            jit=config.model.jit,
+            norm=self.norm,
+            spatial_dims=self.spatial_dims,
+        )
+    elif resblock_type == "biggan":
+        ResBlockpp = functools.partial(
+            layerspp.ResnetBlockBigGANpp,
+            act=self.act,
+            kernel_size=self.conv_size,
+            spatial_dims=self.spatial_dims,
+        )
 
     self.in_block = torch.nn.Conv3d(in_channels=self.in_channels, out_channels=self.out_channels, kernel_size=self.conv_size, stride=2)
     self.prev_model = small_model
