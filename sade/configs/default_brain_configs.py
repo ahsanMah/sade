@@ -69,7 +69,7 @@ def get_default_configs():
     data.image_size = (176, 208, 160)  # For generating images
     data.spacing_pix_dim = 1.0
     data.dir_path = "/DATA/Users/amahmood/braintyp/processed_v2/"
-    data.splits_dir = "/codespace/sade/datasets/"
+    data.splits_dir = "/ASD/ahsan_projects/sridhark/sade/sade/datasets/brains/"
     data.cache_rate = 0.0
     data.num_channels = 2
 

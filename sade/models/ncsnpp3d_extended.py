@@ -392,9 +392,10 @@ class ExtendedModel (registry.BaseScoreModel):
 
         self.in_block = torch.nn.Conv3d(in_channels=self.in_channels,out_channels=self.out_channels,
                                         kernel_size=self.conv_size, stride=2)
+        self.in_ups = torch.nn.Upsample(size=(96, 112, 80))
         self.prev_model = downsize_model
-        self.upsample_block = torch.nn.Upsample()
-        self.out_block = torch.nn.Conv3d(in_channels=self.out_channels, out_channels=self.out_channels, kernel_size=self.conv_size)
+        self.upsample_block = torch.nn.Upsample(size=(176, 208, 160))
+        self.out_block = torch.nn.Conv3d(in_channels=self.out_channels, out_channels=self.out_channels, kernel_size=self.conv_size, padding=1)
     
     def setup_downsize_model(self, config):
         downsize_model = SegResNetpp(config)
@@ -407,6 +408,8 @@ class ExtendedModel (registry.BaseScoreModel):
     def forward(self, x, t):
         print(x.shape)
         x = self.in_block(x)
+        print(x.shape)
+        x = self.in_ups(x)
         print(x.shape)
         x = self.prev_model(x, t)
         x = self.upsample_block(x)

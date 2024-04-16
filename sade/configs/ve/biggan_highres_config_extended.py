@@ -26,7 +26,7 @@ def get_config():
     data.num_channels = 2
     data.cache_rate = 0.0
     data.dir_path = "/DATA/Users/amahmood/braintyp/processed_v2/"
-    data.splits_dir = "/codespace/sade/sade/datasets/brains/"
+    # data.splits_dir = "/codespace/sade/sade/datasets/brains/"
     data.ood_ds = "lesion_load_20"
 
     evaluate = config.eval
@@ -54,10 +54,11 @@ def get_config():
     # model
     model = config.model
     model.name = "extended"
+
     # model.resblock_type = "biggan"
     # model.act = "memswish"
     # model.scale_by_sigma = True
-    # model.ema_rate = 0.9999
+    model.ema_rate = 0.9999
     # model.nf = 24
     # model.blocks_down = (2)
     # model.blocks_up = (1)
