@@ -406,11 +406,11 @@ class ExtendedModel (registry.BaseScoreModel):
         return state['model']
     
     def forward(self, x, t):
-        print(x.shape)
+        # print(x.shape)
         x = self.in_block(x)
-        print(x.shape)
+        # print(x.shape)
         x = self.in_ups(x)
-        print(x.shape)
+        # print(x.shape)
         x = self.prev_model(x, t)
         x = self.upsample_block(x)
         x = self.out_block(x)
