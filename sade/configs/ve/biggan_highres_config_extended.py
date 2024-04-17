@@ -14,7 +14,7 @@ def get_config():
     training.continuous = True
     training.likelihood_weighting = False
     training.reduce_mean = True
-    training.batch_size = 4
+    training.batch_size = 2
     training.n_iters = 1500001
     training.pretrain_dir = (
         "/ASD/ahsan_projects/braintypicality/workdir/cuda_opt/learnable/checkpoints-meta/"
@@ -30,8 +30,8 @@ def get_config():
     data.ood_ds = "lesion_load_20"
 
     evaluate = config.eval
-    evaluate.sample_size = 8
-    evaluate.batch_size = 32
+    evaluate.sample_size = 4
+    evaluate.batch_size = 16
 
     # optimization
     optim = config.optim
