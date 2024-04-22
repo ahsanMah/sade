@@ -392,7 +392,7 @@ class ExtendedModel (registry.BaseScoreModel):
 
         # self.in_block = torch.nn.Conv3d(in_channels=self.in_channels,out_channels=self.out_channels,
                                         # kernel_size=self.conv_size, stride=2)
-        self.in_block = layerspp.ResnetBlockBigGANpp(in_channels=self.in_channels, downsample=True)
+        self.in_block = layerspp.ResnetBlockBigGANpp(in_channels=self.in_channels, temb_dim=64, downsample=True)
         self.in_ups = torch.nn.Upsample(size=(96, 112, 80))
         self.prev_model = downsize_model
         self.upsample_block = torch.nn.Upsample(size=(176, 208, 160))
