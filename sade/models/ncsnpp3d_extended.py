@@ -409,13 +409,13 @@ class ExtendedModel (registry.BaseScoreModel):
     def forward(self, x, t):
         # print(x.shape)
         # x = self.in_block(x)
-        x = torch.nn.functional.interpolate(x)
+        x = torch.nn.functional.interpolate(x, size=(96, 112, 80))
         # print(x.shape)
         x = self.in_ups(x)
         # print(x.shape)
         x = self.prev_model(x, t)
         x = self.upsample_block(x)
-        x = torch.nn.functional.interpolate(x)
+        x = torch.nn.functional.interpolate(x, size=(176, 208, 160))
         # x = self.out_block(x)
         
         return x
