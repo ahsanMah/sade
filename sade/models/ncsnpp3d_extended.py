@@ -390,9 +390,9 @@ class ExtendedModel (registry.BaseScoreModel):
         #         spatial_dims=self.spatial_dims,
         #     )
 
-        # self.in_block = torch.nn.Conv3d(in_channels=self.in_channels,out_channels=self.out_channels,
-                                        # kernel_size=self.conv_size, stride=2)
-        self.in_block = layerspp.ResnetBlockBigGANpp(in_channels=self.in_channels, temb_dim=64, downsample=True)
+        self.in_block = torch.nn.Conv3d(in_channels=self.in_channels,out_channels=self.out_channels,
+                                        kernel_size=self.conv_size, stride=2)
+        # self.in_block = torch.nn.functional.interpolate()
         self.in_ups = torch.nn.Upsample(size=(96, 112, 80))
         self.prev_model = downsize_model
         self.upsample_block = torch.nn.Upsample(size=(176, 208, 160))
@@ -408,13 +408,15 @@ class ExtendedModel (registry.BaseScoreModel):
     
     def forward(self, x, t):
         # print(x.shape)
-        x = self.in_block(x)
+        # x = self.in_block(x)
+        x = torch.nn.functional.interpolate(x)
         # print(x.shape)
         x = self.in_ups(x)
         # print(x.shape)
         x = self.prev_model(x, t)
         x = self.upsample_block(x)
-        x = self.out_block(x)
+        x = torch.nn.functional.interpolate(x)
+        # x = self.out_block(x)
         
         return x
 

@@ -37,7 +37,7 @@ def get_config():
     optim = config.optim
     optim.weight_decay = 0.0
     optim.optimizer = "Adam"
-    optim.lr = 2e-4
+    optim.lr = 1e-5
     optim.warmup = 1000
     optim.scheduler = "skip"
 
