@@ -28,19 +28,26 @@ def flow_trainer(config, workdir):
     ema_rampup_ratio = config.flow.ema_rampup_ratio
 
     # Initialize score model
-    score_model = registry.create_model(config, log_grads=False)
-    ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
-    state = dict(model=score_model, ema=ema, step=0)
+    # FIXME: Use torch.cuda.device
+    scorer_device = "cuda:1"
+    config.device = scorer_device
+    with torch.cuda.device(config.device):
+        score_model = registry.create_model(config, log_grads=False, distributed=False)
+        ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
+        state = dict(model=score_model, ema=ema, step=0)
 
-    # Get the score model checkpoint from pretrained run
-    state = restore_pretrained_weights(
-        config.training.pretrained_checkpoint, state, config.device
-    )
-    score_model.eval().requires_grad_(False)
-    scorer = registry.get_msma_score_fn(config, score_model, return_norm=False)
+        # Get the score model checkpoint from pretrained run
+        state = restore_pretrained_weights(
+            config.training.pretrained_checkpoint, state, config.device
+        )
+        score_model.eval().requires_grad_(False)
+
+        scorer = registry.get_msma_score_fn(config, score_model, return_norm=False)
 
     # Initialize flow model
-    flownet = registry.create_flow(config)
+    config.device = device
+    with torch.cuda.device(config.device):
+        flownet = registry.create_flow(config)
 
     summary(flownet, depth=0, verbose=2)
 
@@ -64,12 +71,16 @@ def flow_trainer(config, workdir):
     flow_checkpoint_path = f"{run_dir}/checkpoint.pth"
     flow_checkpoint_meta_path = f"{run_dir}/checkpoint-meta.pth"
 
+    if os.path.exists(flow_checkpoint_meta_path):
+        state_dict = torch.load(flow_checkpoint_meta_path, map_location=torch.device("cpu"))
+        _ = state_dict["model_state_dict"].pop("position_encoder.cached_penc", None)
+        flownet.load_state_dict(state_dict["model_state_dict"], strict=True)
+        logging.info(f"Resuming checkpoint from {state_dict['kimg']}")
+
     # Set logger so that it outputs to both console and file
     gfile_stream = open(os.path.join(run_dir, "stdout.txt"), "w")
     file_handler = logging.StreamHandler(gfile_stream)
     stdout_handler = logging.StreamHandler(sys.stdout)
-
-    # TODO: RESUME CHECKPPOINT
 
     # Override root handler
     logging.root.handlers = []
@@ -79,14 +90,17 @@ def flow_trainer(config, workdir):
         handlers=[file_handler, stdout_handler],
     )
 
+
     if log_tensorboard:
         writer = tensorboard.SummaryWriter(log_dir=run_dir)
 
     flownet = flownet.to(device)
     # Main copy to be used for "fast" weight updates
     teacher_flow_model = copy.deepcopy(flownet).to(device)
+    # teacher_flow_model = torch.nn.DataParallel(teacher_flow_model)
     # Model will be updated with EMA weights
     flownet = flownet.eval().requires_grad_(False)
+    # flownet = torch.nn.DataParallel(flownet)
 
     # Defining optimization step
     opt = torch.optim.AdamW(teacher_flow_model.parameters(), lr=lr, weight_decay=1e-5)
@@ -115,9 +129,15 @@ def flow_trainer(config, workdir):
     loss_dict = {}
 
     for niter in progbar:
-        x_batch = next(train_iter)["image"]
-        x_batch = torch.tensor(x_batch).to(device)
-        scores = scorer(x_batch)
+        config.device = scorer_device
+        with torch.cuda.device(scorer_device):
+            x_batch = next(train_iter)["image"]
+            x_batch = torch.tensor(x_batch).to(scorer_device)
+            scores = scorer(x_batch)
+        
+        config.device = device
+        scores = scores.to(device)
+        x_batch = x_batch.to(device)
 
         loss_dict["train_loss"] = flow_train_step(scores, x_batch)
         imgcount += x_batch.shape[0]
@@ -134,11 +154,18 @@ def flow_trainer(config, workdir):
             p_ema.copy_(p_net.detach().lerp(p_ema, ema_beta))
 
         if niter % log_interval == 0:
-            flownet.eval()
 
-            with torch.no_grad():
-                x_batch = next(eval_iter)["image"].to(device)
+            config.device = scorer_device
+            with torch.cuda.device(scorer_device):
+                x_batch = next(eval_iter)["image"]
+                x_batch = torch.tensor(x_batch).to(scorer_device)
                 scores = scorer(x_batch)
+                
+            flownet.eval()
+            with torch.no_grad():
+                config.device = device
+                scores = scores.to(device)
+                x_batch = x_batch.to(device)
                 val_loss = flow_eval_step(scores, x_batch)
                 loss_dict["val_loss"] = val_loss
 
