@@ -1,6 +1,7 @@
 """Layers for defining NCSN++.
 """
-from typing import Any, Optional, Sequence, Tuple, Union
+
+from typing import Any, Tuple, Union
 
 import numpy as np
 import torch
@@ -68,14 +69,16 @@ def get_conv_layer(
 def get_upsample_layer(
     spatial_dims: int,
     in_channels: int,
+    out_channels: int = None,
     upsample_mode: Union[UpsampleMode, str] = "nontrainable",
     interp_mode=InterpolateMode.LINEAR,
     scale_factor: int = 2,
 ):
+
     return UpSample(
         spatial_dims=spatial_dims,
         in_channels=in_channels,
-        out_channels=in_channels,
+        out_channels=in_channels if out_channels is None else out_channels,
         scale_factor=scale_factor,
         mode=upsample_mode,
         interp_mode=interp_mode,
@@ -83,11 +86,45 @@ def get_upsample_layer(
     )
 
 
+def get_pooling_layer(
+    spatial_dims: int, kernel_size: int = 3, stride: int = 2, padding: int = 1
+):
+    pool_2d_or_3d = nn.AvgPool2d if spatial_dims == 2 else nn.AvgPool3d
+
+    return pool_2d_or_3d(kernel_size=kernel_size, stride=stride, padding=padding)
+
+
 def make_dense_layer(in_sz, out_sz):
     dense = nn.Linear(in_sz, out_sz)
     dense.weight.data = default_init()(dense.weight.shape)
     nn.init.zeros_(dense.bias)
     return dense
+
+
+def make_time_cond_layers(
+    time_embedding_sz, embedding_type="fourier", fourier_scale=2.0, learnable_embedding=True
+):
+    layer_list = []
+
+    if embedding_type == "fourier":
+        # Projection layer doubles the input_sz
+        # Since it concats sin and cos projections
+        projection = GaussianFourierProjection(
+            embedding_size=time_embedding_sz,
+            scale=fourier_scale,
+            learnable=learnable_embedding,
+        )
+        layer_list.append(projection)
+
+    sz = time_embedding_sz * 2
+    dense_0 = make_dense_layer(sz, sz)
+    dense_1 = make_dense_layer(sz, sz)
+
+    layer_list.append(dense_0)
+    layer_list.append(nn.SiLU())
+    layer_list.append(dense_1)
+
+    return nn.Sequential(*layer_list)
 
 
 class ResBlockpp(nn.Module):
@@ -308,6 +345,8 @@ class ResnetBlockBigGANpp(nn.Module):
         self.act = Act[act]()
 
     def forward(self, x, temb):
+        b, c, *spatial = x.shape
+
         if self.pre_conv is not None:
             # This is where the downsample happens
             x = self.pre_conv(x)
@@ -316,7 +355,8 @@ class ResnetBlockBigGANpp(nn.Module):
 
         h = self.conv_0(h)
         # FiLM-like conditioning for each feature map via time embedding
-        cond_info = self.dense(self.act(temb))[:, :, None, None, None]
+        cond_info = self.dense(self.act(temb))
+        cond_info = cond_info.view(b, self.n_channels * 2, *([1] * len(spatial)))
         gamma, beta = torch.split(cond_info, (self.n_channels, self.n_channels), dim=1)
         h = h * gamma + beta
 
