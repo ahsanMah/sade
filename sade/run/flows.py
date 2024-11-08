@@ -7,11 +7,11 @@ import sys
 import models.registry as registry
 import numpy as np
 import torch
-import wandb
 from torch.utils import tensorboard
 from torchinfo import summary
 from tqdm import tqdm
 
+import wandb
 from sade.datasets.loaders import get_dataloaders
 from sade.models.ema import ExponentialMovingAverage
 from sade.models.flows import PatchFlow
@@ -28,21 +28,19 @@ def flow_trainer(config, workdir):
     ema_rampup_ratio = config.flow.ema_rampup_ratio
 
     # Initialize score model
-    # FIXME: Use torch.cuda.device
-    scorer_device = "cuda:1"
-    config.device = scorer_device
-    with torch.cuda.device(config.device):
-        score_model = registry.create_model(config, log_grads=False, distributed=False)
-        ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
-        state = dict(model=score_model, ema=ema, step=0)
+    score_model = registry.create_model(config, log_grads=False)
+    ema = ExponentialMovingAverage(
+        score_model.parameters(), decay=config.model.ema_rate
+    )
+    state = dict(model=score_model, ema=ema, step=0)
 
-        # Get the score model checkpoint from pretrained run
-        state = restore_pretrained_weights(
-            config.training.pretrained_checkpoint, state, config.device
-        )
-        score_model.eval().requires_grad_(False)
+    # Get the score model checkpoint from pretrained run
+    state = restore_pretrained_weights(
+        config.training.pretrained_checkpoint, state, config.device
+    )
+    score_model.eval().requires_grad_(False)
 
-        scorer = registry.get_msma_score_fn(config, score_model, return_norm=False)
+    scorer = registry.get_msma_score_fn(config, score_model, return_norm=False)
 
     # Initialize flow model
     config.device = device
@@ -72,7 +70,9 @@ def flow_trainer(config, workdir):
     flow_checkpoint_meta_path = f"{run_dir}/checkpoint-meta.pth"
 
     if os.path.exists(flow_checkpoint_meta_path):
-        state_dict = torch.load(flow_checkpoint_meta_path, map_location=torch.device("cpu"))
+        state_dict = torch.load(
+            flow_checkpoint_meta_path, map_location=torch.device("cpu")
+        )
         _ = state_dict["model_state_dict"].pop("position_encoder.cached_penc", None)
         flownet.load_state_dict(state_dict["model_state_dict"], strict=True)
         logging.info(f"Resuming checkpoint from {state_dict['kimg']}")
@@ -214,7 +214,9 @@ def flow_trainer(config, workdir):
 def flow_evaluator(config, workdir):
     # Initialize score model
     score_model = registry.create_model(config, log_grads=False)
-    ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
+    ema = ExponentialMovingAverage(
+        score_model.parameters(), decay=config.model.ema_rate
+    )
     state = dict(model=score_model, ema=ema, step=0, model_checkpoint_step=0)
 
     # Get the score model checkpoint from pretrained run

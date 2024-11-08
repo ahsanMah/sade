@@ -190,6 +190,7 @@ class PatchFlow(torch.nn.Module):
         return nfm
 
     def forward(self, x_scores, x_batch, fast=True):
+        batch_size = x_scores.shape[0]
         x_norm = self.local_pooler(x_scores)
         self.position_encoder = self.position_encoder.cpu()
         context = self.position_encoder(x_norm)
@@ -225,6 +226,13 @@ class PatchFlow(torch.nn.Module):
                 c = c.cpu()
 
         # Use einops to concatenate all patches
+        zs = torch.cat(zs, dim=0)
+        log_jac_dets = torch.cat(log_jac_dets, dim=0)
+
+        if batch_size == 1:
+            zs = zs.unsqueeze(1)
+            log_jac_dets = log_jac_dets.unsqueeze(1)
+
         zs = rearrange(zs, "n b c -> (n b) c")
         log_jac_dets = rearrange(log_jac_dets, "n b -> (n b)")
 

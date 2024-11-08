@@ -1,6 +1,7 @@
 """Metrics for evaluating OOD detection and segmentation performance"""
 
 import logging
+import math
 
 import ants
 import matplotlib.pyplot as plt
@@ -384,3 +385,48 @@ def compute_segmentation_metrics(pred_labels, true_labels):
     metrics_df["PPV"] = metrics_df.TP / (metrics_df.TP + metrics_df.FP)
 
     return metrics_df
+
+"""
+From wikipedia: https://en.wikipedia.org/wiki/Golden-section_search
+Python program for golden section search.  This implementation
+does not reuse function evaluations and assumes the minimum is c
+or d (not on the edges at a or b)
+"""
+
+def gss(f, a, b, tolerance=1e-5):
+    """
+    Golden-section search
+    to find the minimum of f on [a,b]
+
+    * f: a strictly unimodal function on [a,b]
+
+    Example:
+    >>> def f(x): return (x - 2) ** 2
+    >>> x = gss(f, 1, 5)
+    >>> print(f"{x:.5f}")
+    2.00000
+
+    """
+    invphi = (math.sqrt(5) - 1) / 2  # 1 / phi
+
+    while b - a > tolerance:
+        c = b - (b - a) * invphi
+        d = a + (b - a) * invphi
+        if f(c) < f(d):
+            b = d
+        else:  # f(c) > f(d) to find the maximum
+            a = c
+
+    return (b + a) / 2
+
+
+def auto_compute_thresholds(training_samples, false_positive_rate):
+
+    def optimization_fn(thresh):
+        fpr_at_thresh = (training_samples > thresh).mean()
+        dist = np.sqrt((false_positive_rate - fpr_at_thresh) ** 2)
+        return dist
+
+    return gss(
+        optimization_fn, training_samples.min(), training_samples.max(), tolerance=1e-5
+    )

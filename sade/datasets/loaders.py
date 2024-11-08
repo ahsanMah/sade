@@ -18,10 +18,10 @@ from sade.datasets.transforms import (
 
 
 def get_image_files_list(dataset_name: str, dataset_dir: str, splits_dir: str):
-    if re.match(r"lesion", dataset_name):
+    if re.match(r"(lesion)|(brats)|(mslub)", dataset_name):
         image_files_list = [
             {"image": p, "label": p.replace(".nii.gz", "_label.nii.gz")}
-            for p in glob.glob(f"{dataset_dir}/*/*.nii.gz")
+            for p in glob.glob(f"{dataset_dir}/**/*.nii.gz", recursive=True)
             if "label" not in p  # very lazy, i know :)
         ]
     else:
@@ -29,7 +29,7 @@ def get_image_files_list(dataset_name: str, dataset_dir: str, splits_dir: str):
         assert os.path.exists(file_path), f"{file_path} does not exist"
 
         strip = lambda x: x.strip()
-        if re.match(r"(abcd)", dataset_name):
+        if re.match(r"(abcd)|(multisource)", dataset_name):
             strip = lambda x: x.strip().replace("_", "")
 
         with open(file_path) as f:
@@ -73,8 +73,11 @@ def get_datasets(config, training=False):
         train_file_list = get_image_files_list(train_dataset, dataset_dir, splits_dir)
         val_file_list = get_image_files_list(inlier_dataset, dataset_dir, splits_dir)
 
-        if re.match(r"lesion", ood_dataset):
-            dirname = f"slicer_lesions/{ood_dataset}/{dataset_name.upper()}"
+        if re.match(r"(lesion)|(brats)|(mslub)", ood_dataset):
+            if "lesion" in ood_dataset:
+                dirname = f"slicer_lesions/{ood_dataset}/{dataset_name.upper()}"
+            else:
+                dirname = ood_dataset
             ood_dir_path = os.path.abspath(f"{dataset_dir}/..")
             dataset_dir = f"{ood_dir_path}/{dirname}"
             assert os.path.exists(dataset_dir), f"{dataset_dir} does not exist"
@@ -129,7 +132,7 @@ def get_dataloaders(
         val_transform = get_val_transform(config)
 
         ood_ds_name = config.eval.experiment.ood.lower()
-        if re.match(r"lesion", ood_ds_name):
+        if re.match(r"(lesion)|(brats)|(mslub)", ood_ds_name):
             test_transform = get_lesion_transform(config)
         elif re.match(r"tumor", ood_ds_name):
             test_transform = get_tumor_transform(config)

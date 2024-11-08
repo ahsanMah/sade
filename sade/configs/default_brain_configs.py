@@ -51,6 +51,7 @@ def get_default_configs():
     experiment.train = "abcd-val"  # The dataset used for training MSMA
     experiment.inlier = "abcd-test"
     experiment.ood = "tumor"
+    experiment.flow_checkpoint_path = "/path/to/weights/"
 
     # msma
     config.msma = msma = ml_collections.ConfigDict()
@@ -72,7 +73,7 @@ def get_default_configs():
     data.image_size = (176, 208, 160)  # For generating images
     data.spacing_pix_dim = 1.0
     data.dir_path = "/DATA/Users/amahmood/braintyp/processed_v2/"
-    data.splits_dir = "/codespace/sade/datasets/"
+    data.splits_dir = "/ASD/ahsan_projects/Developer/braintypicality-scripts/split-keys/"
     data.cache_rate = 0.0
     data.num_channels = 2
 
@@ -145,9 +146,7 @@ def get_default_configs():
     finoptim.grad_clip = 0
 
     config.seed = 42
-    config.device = (
-        torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
-    )
+    config.device = "cuda:0" if torch.cuda.is_available() else "cpu"
     config.fp16 = False
 
     # Configuration for Hyperparam sweeps
