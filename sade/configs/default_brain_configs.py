@@ -67,6 +67,7 @@ def get_default_configs():
     # data
     config.data = data = ml_collections.ConfigDict()
     data.dataset = "ABCD"
+    data.spatial_dims = 3
     # data.ood_ds = "lesion"  # "IBIS"
     data.image_size = (176, 208, 160)  # For generating images
     data.spacing_pix_dim = 1.0

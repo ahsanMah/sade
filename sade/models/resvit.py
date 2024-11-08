@@ -1,13 +1,8 @@
 from functools import partial
-from typing import Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
-from monai.networks.blocks.segresnet_block import get_conv_layer, get_upsample_layer
-from monai.networks.layers.factories import Dropout
-from monai.networks.layers.utils import get_norm_layer
-from monai.utils import UpsampleMode
 
 from . import layers, layerspp, registry
 
@@ -16,7 +11,7 @@ from . import layers, layerspp, registry
 class ResidualViT(registry.BaseScoreModel):
     """
     Adapting model archtiecture from `simpler-diffusion` paper: https://arxiv.org/pdf/2410.19324
-    The arch is kinda like unet with single residual skip connection
+    The arch is like a unet with single (residual) skip connections
 
     f_down --> f_mid --- + --> f_up
            |-------------^
@@ -174,7 +169,7 @@ class ResidualViT(registry.BaseScoreModel):
 
         x = self.out_conv(x)
 
-        # t_sigmas = t_sigmas.reshape((x.shape[0], *([1] * len(x.shape[1:]))))
-        # x = x / t_sigmas
+        t_sigmas = t_sigmas.reshape((x.shape[0], *([1] * len(x.shape[1:]))))
+        x = x / t_sigmas
 
         return x

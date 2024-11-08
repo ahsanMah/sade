@@ -5,9 +5,9 @@ import logging
 
 import numpy as np
 import torch
-import wandb
 from torchinfo import summary
 
+import wandb
 from sade.models.flows import PatchFlow
 from sade.sde_lib import VESDE, VPSDE, subVPSDE
 
@@ -66,7 +66,7 @@ def get_sigmas(config):
 def create_model(config, log_grads=False, print_summary=False, distributed=True):
     """Create the score model and wrap it with DataParallel."""
     model_name = config.model.name
-    score_model = get_model(model_name)(config)
+    score_model = get_model(model_name)(config, spatial_dims=config.data.spatial_dims)
 
     if print_summary:
         logging.info(score_model)
