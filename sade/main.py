@@ -6,13 +6,14 @@ import warnings
 
 import ml_collections
 import torch
-import wandb
 from absl import app, flags
 from ml_collections.config_flags import config_flags
 from run.eval import evaluator, segmentation_evaluator
 from run.finetune import finetuner
 from run.flows import flow_evaluator, flow_trainer
 from run.train import trainer
+
+import wandb
 
 warnings.filterwarnings("ignore")
 
@@ -61,7 +62,6 @@ def main(argv):
     if FLAGS.mode == "train":
         # Create the working directory
         os.makedirs(FLAGS.workdir, exist_ok=True)
-        setup_logger(FLAGS.workdir)
 
         with wandb.init(
             project=FLAGS.project,
@@ -73,12 +73,13 @@ def main(argv):
             config = ml_collections.ConfigDict(wandb.config)
 
             # Use run id for directory name
-            workdir = os.path.join(FLAGS.workdir, f"finetune", wandb.run.id)
-            os.makedirs(workdir, exist_ok=True)
-            setup_logger(workdir)
+            logdir = os.path.join(FLAGS.workdir, "train-logs", wandb.run.id)
+            os.makedirs(logdir, exist_ok=True)
+            setup_logger(logdir)
 
             # Run the training pipeline
             trainer(config, FLAGS.workdir)
+            
     elif FLAGS.mode == "finetune":
         with wandb.init(
             project=FLAGS.project,
@@ -90,7 +91,7 @@ def main(argv):
             config = ml_collections.ConfigDict(wandb.config)
 
             # Use run id for directory name
-            workdir = os.path.join(FLAGS.workdir, f"finetune", wandb.run.id)
+            workdir = os.path.join(FLAGS.workdir, "finetune-logs", wandb.run.id)
             os.makedirs(workdir, exist_ok=True)
             setup_logger(workdir)
 
