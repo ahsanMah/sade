@@ -6,7 +6,6 @@ import os
 import re
 
 from monai.data import CacheDataset
-from monai.transforms import *
 from torch.utils.data import DataLoader, RandomSampler
 
 from sade.datasets.transforms import (
@@ -35,8 +34,13 @@ def get_image_files_list(dataset_name: str, dataset_dir: str, splits_dir: str):
         with open(file_path) as f:
             image_filenames = [strip(x) for x in f.readlines()]
 
+        if re.match(r"(usf)", dataset_name):
+            file_ext = ".png"
+        else:
+            file_ext = ".nii.gz"
+        
         image_files_list = [
-            {"image": os.path.join(dataset_dir, f"{x}.nii.gz")} for x in image_filenames
+            {"image": os.path.join(dataset_dir, f"{x}{file_ext}")} for x in image_filenames
         ]
 
     image_files_list = sorted(image_files_list, key=lambda x: x["image"])

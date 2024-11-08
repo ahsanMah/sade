@@ -153,61 +153,76 @@ class RandTumor(Randomizable, Transform):
 
 
 def get_train_transform(config):
-    spacing = [config.data.spacing_pix_dim] * 3
-    return Compose(
-        [
-            LoadImaged("image", image_only=True),
-            SqueezeDimd("image", dim=3),
-            EnsureChannelFirstd("image"),
-            SpatialCropd("image", roi_start=[11, 9, 0], roi_end=[172, 205, 152]),
-            Spacingd("image", pixdim=spacing),
-            DivisiblePadd("image", k=16),
-            RandStdShiftIntensityd("image", (-0.05, 0.05)),
-            RandScaleIntensityd("image", (-0.05, 0.05)),
-            RandHistogramShiftd("image", num_control_points=[3, 5]),
-            RandAffined(
-                "image",
-                prob=0.1,
-                rotate_range=[0.05, 0.05, 0.05],
-                translate_range=5,
-            ),
-            RandKSpaceSpikeNoised("image", prob=0.1),
-            RandRicianNoised("image", prob=0.1, std=0.01, sample_std=True),
-            RandGibbsNoised("image", prob=0.1, alpha=(0.0, 0.1)),
-            ScaleIntensityRangePercentilesd(
-                "image",
-                lower=0.01,
-                upper=99.9,
-                b_min=-1.0,
-                b_max=1.0,
-                clip=True,
-                channel_wise=True,
-            ),
-        ]
-    )
+
+    if config.data.spatial_dims == 3:
+        spacing = [config.data.spacing_pix_dim] * 3
+        return Compose(
+            [
+                LoadImaged("image", image_only=True),
+                SqueezeDimd("image", dim=3),
+                EnsureChannelFirstd("image"),
+                SpatialCropd("image", roi_start=[11, 9, 0], roi_end=[172, 205, 152]),
+                Spacingd("image", pixdim=spacing),
+                DivisiblePadd("image", k=16),
+                RandStdShiftIntensityd("image", (-0.05, 0.05)),
+                RandScaleIntensityd("image", (-0.05, 0.05)),
+                RandHistogramShiftd("image", num_control_points=[3, 5]),
+                RandAffined(
+                    "image",
+                    prob=0.1,
+                    rotate_range=[0.05, 0.05, 0.05],
+                    translate_range=5,
+                ),
+                RandKSpaceSpikeNoised("image", prob=0.1),
+                RandRicianNoised("image", prob=0.1, std=0.01, sample_std=True),
+                RandGibbsNoised("image", prob=0.1, alpha=(0.0, 0.1)),
+                ScaleIntensityRangePercentilesd(
+                    "image",
+                    lower=0.01,
+                    upper=99.9,
+                    b_min=-1.0,
+                    b_max=1.0,
+                    clip=True,
+                    channel_wise=True,
+                ),
+            ]
+        )
+    else:
+        return Compose(
+            [
+                LoadImaged("image", image_only=True),
+            ]
+        )
 
 
 def get_val_transform(config):
-    spacing = [config.data.spacing_pix_dim] * 3
-    return Compose(
-        [
-            LoadImaged("image", image_only=True),
-            SqueezeDimd("image", dim=3),
-            EnsureChannelFirstd("image"),
-            SpatialCropd("image", roi_start=[11, 9, 0], roi_end=[172, 205, 152]),
-            Spacingd("image", pixdim=spacing),
-            DivisiblePadd("image", k=16),
-            ScaleIntensityRangePercentilesd(
-                "image",
-                lower=0.01,
-                upper=99.9,
-                b_min=-1.0,
-                b_max=1.0,
-                clip=True,
-                channel_wise=True,
-            ),
-        ]
-    )
+    if config.data.spatial_dims == 3:
+        spacing = [config.data.spacing_pix_dim] * 3
+        return Compose(
+            [
+                LoadImaged("image", image_only=True),
+                SqueezeDimd("image", dim=3),
+                EnsureChannelFirstd("image"),
+                SpatialCropd("image", roi_start=[11, 9, 0], roi_end=[172, 205, 152]),
+                Spacingd("image", pixdim=spacing),
+                DivisiblePadd("image", k=16),
+                ScaleIntensityRangePercentilesd(
+                    "image",
+                    lower=0.01,
+                    upper=99.9,
+                    b_min=-1.0,
+                    b_max=1.0,
+                    clip=True,
+                    channel_wise=True,
+                ),
+            ]
+        )
+    else:
+        return Compose(
+            [
+                LoadImaged("image", image_only=True),
+            ]
+        )
 
 
 def get_tumor_transform(config):
