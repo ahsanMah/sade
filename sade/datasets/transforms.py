@@ -154,6 +154,7 @@ class RandTumor(Randomizable, Transform):
             padding_mode=padding_mode or self.padding_mode,
         )
 
+
 def get_train_transform(config):
 
     if config.data.spatial_dims == 3:
@@ -197,20 +198,21 @@ def get_train_transform(config):
                     "image", image_only=True, converter=lambda image: image.convert("L")
                 ),
                 EnsureChannelFirstd("image"),
-                CenterSpatialCropd("image", size=img_size),
+                CenterSpatialCropd("image", roi_size=img_size),
                 RandStdShiftIntensityd("image", (-0.03, 0.03)),
                 RandScaleIntensityd("image", (-0.03, 0.03)),
                 RandHistogramShiftd("image", num_control_points=[3, 5]),
                 # Adds Speckle-like Noise as it is multiplicative
                 RandSmoothFieldAdjustIntensityd(
+                    "image",
                     spatial_size=img_size,
-                    rand_size=(img_size[0] // 2, img_size[1]//2),
-                    prob=1.0,
+                    rand_size=(img_size[0] // 2, img_size[1] // 2),
+                    prob=0.1,
                     gamma=(0.8, 1.0),
                 ),
                 RandAffined(
                     "image",
-                    prob=1,
+                    prob=0.1,
                     rotate_range=0.05,
                     translate_range=5,
                 ),
@@ -257,7 +259,7 @@ def get_val_transform(config):
                     "image", image_only=True, converter=lambda image: image.convert("L")
                 ),
                 EnsureChannelFirstd("image"),
-                CenterSpatialCropd("image", size=img_size),
+                CenterSpatialCropd("image", roi_size=img_size),
                 ScaleIntensityRangePercentilesd(
                     "image",
                     lower=0.01,
