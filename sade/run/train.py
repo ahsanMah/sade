@@ -2,14 +2,16 @@ import functools
 import logging
 import os
 
+import matplotlib.pyplot as plt
 import models.registry as registry
 import numpy as np
 import torch
-import wandb
 from datasets.loaders import get_dataloaders
 from models.ema import ExponentialMovingAverage
 from optim import get_diagnsotic_fn, get_step_fn, optimization_manager
 from torch.utils import tensorboard
+
+import wandb
 
 from .sampling import get_sampling_fn
 from .utils import (
@@ -220,16 +222,26 @@ def trainer(config, workdir):
             ema.restore(score_model.parameters())
             this_sample_dir = os.path.join(sample_dir, "iter_{}".format(step))
             makedirs(this_sample_dir)
-            sample = sample.permute(0, 2, 3, 4, 1).cpu().numpy()
             logging.info("step: %d, done!" % (step))
+            sample = torch.movedim(sample, 1, sample.ndim - 1).cpu().numpy()
 
             with open(os.path.join(this_sample_dir, "sample.np"), "wb") as fout:
                 np.save(fout, sample)
 
             fname = os.path.join(this_sample_dir, "sample.png")
-
+            sample -= sample.min()
+            sample /= sample.max()
             try:
-                plot_slices(sample, fname)
+                if sample.ndim == 5:
+                    plot_slices(sample, fname)
+                else:
+                    b, h, w, c = sample.shape
+                    rows, cols = b // 2, 2
+                    sample = sample[: rows * cols].reshape(rows, cols, h, w, c)
+                    sample = np.transpose(sample, (0, 2, 1, 3, 4))
+                    sample = sample.reshape(h * rows, w * cols, c)
+                    plt.imshow(sample)
+                    plt.savefig(fname)
                 wandb.log({"sample": wandb.Image(fname)})
             except:
                 logging.warning("Plotting failed!")

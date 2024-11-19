@@ -307,7 +307,7 @@ def get_msma_score_fn(config, score_model, return_norm=True, denoise=False):
                         * std
                     )
                 else:
-                    score = (score * std[:, None, None, None, None]).sum(dim=1)
+                    score = (score * sde._unsqueeze(std)).sum(dim=1)
 
                 scores[:, i, ...].copy_(score)
 
