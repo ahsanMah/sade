@@ -7,6 +7,7 @@ import torch
 from monai.transforms.compose import Compose
 from monai.transforms.croppad.array import CenterSpatialCrop
 from monai.transforms.croppad.dictionary import (
+    CenterSpatialCropd,
     DivisiblePadd,
     SpatialCropd,
 )
@@ -20,6 +21,7 @@ from monai.transforms.intensity.dictionary import (
     ScaleIntensityRangePercentilesd,
 )
 from monai.transforms.io.dictionary import LoadImaged
+from monai.transforms.smooth_field.dictionary import RandSmoothFieldAdjustIntensityd
 from monai.transforms.spatial.array import RandDeformGrid, Resample
 from monai.transforms.spatial.dictionary import (
     RandAffined,
@@ -30,6 +32,7 @@ from monai.transforms.utility.dictionary import (
     EnsureChannelFirstd,
     RandLambdad,
     SqueezeDimd,
+    TorchVisiond,
 )
 from monai.transforms.utils import create_control_grid, create_grid
 from monai.utils import (
@@ -151,7 +154,6 @@ class RandTumor(Randomizable, Transform):
             padding_mode=padding_mode or self.padding_mode,
         )
 
-
 def get_train_transform(config):
 
     if config.data.spatial_dims == 3:
@@ -188,9 +190,39 @@ def get_train_transform(config):
             ]
         )
     else:
+        img_size = config.data.image_size
         return Compose(
             [
-                LoadImaged("image", image_only=True),
+                LoadImaged(
+                    "image", image_only=True, converter=lambda image: image.convert("L")
+                ),
+                EnsureChannelFirstd("image"),
+                CenterSpatialCropd("image", size=img_size),
+                RandStdShiftIntensityd("image", (-0.03, 0.03)),
+                RandScaleIntensityd("image", (-0.03, 0.03)),
+                RandHistogramShiftd("image", num_control_points=[3, 5]),
+                # Adds Speckle-like Noise as it is multiplicative
+                RandSmoothFieldAdjustIntensityd(
+                    spatial_size=img_size,
+                    rand_size=(img_size[0] // 2, img_size[1]//2),
+                    prob=1.0,
+                    gamma=(0.8, 1.0),
+                ),
+                RandAffined(
+                    "image",
+                    prob=1,
+                    rotate_range=0.05,
+                    translate_range=5,
+                ),
+                ScaleIntensityRangePercentilesd(
+                    "image",
+                    lower=0.01,
+                    upper=99.9,
+                    b_min=-1.0,
+                    b_max=1.0,
+                    clip=True,
+                    channel_wise=True,
+                ),
             ]
         )
 
@@ -218,9 +250,23 @@ def get_val_transform(config):
             ]
         )
     else:
+        img_size = config.data.image_size
         return Compose(
             [
-                LoadImaged("image", image_only=True),
+                LoadImaged(
+                    "image", image_only=True, converter=lambda image: image.convert("L")
+                ),
+                EnsureChannelFirstd("image"),
+                CenterSpatialCropd("image", size=img_size),
+                ScaleIntensityRangePercentilesd(
+                    "image",
+                    lower=0.01,
+                    upper=99.9,
+                    b_min=-1.0,
+                    b_max=1.0,
+                    clip=True,
+                    channel_wise=True,
+                ),
             ]
         )
 
