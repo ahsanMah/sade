@@ -78,7 +78,7 @@ def get_sampling_fn(config, sde, shape):
 
     sampler_name = config.sampling.method
     eps = sde.sampling_eps
-    inverse_scaler = lambda x: x
+    inverse_scaler = lambda x: (x + 1) / 2
 
     # Probability flow ODE sampling with black-box ODE solvers
     if sampler_name.lower() == "ode":
