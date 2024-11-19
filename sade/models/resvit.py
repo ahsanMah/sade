@@ -49,10 +49,7 @@ class ResidualViT(registry.BaseScoreModel):
         # Conv options will apply to all convolutions
         self.conv_size = config.model.conv_size
 
-        self.scale_by_sigma = config.model.scale_by_sigma
-        # self.embedding_type = embedding_type = config.model.embedding_type.lower()
         self.compile = config.model.jit
-        self.norm_num_groups: int = config.model.norm_num_groups
 
         # Attention / Transformer related
         self.attention_heads = config.model.num_attention_heads
@@ -69,10 +66,11 @@ class ResidualViT(registry.BaseScoreModel):
 
         ResBlockpp = partial(
             layerspp.ResnetBlockBigGANpp,
-            act=self.act,
-            kernel_size=self.conv_size,
             spatial_dims=spatial_dims,
-            temb_dim=self.time_embedding_sz * 2, # sin and cos
+            kernel_size=self.conv_size,
+            act=self.act,
+            init_scale=config.model.init_scale,
+            temb_dim=self.time_embedding_sz * 2,  # sin and cos
         )
 
         # Initialize layers
@@ -155,7 +153,7 @@ class ResidualViT(registry.BaseScoreModel):
             # print(f"Computed down-layer {i}: {x.shape}")
 
         # Bottleneck block is tranformer-like
-        x = x - self.attention_block(x)
+        x = self.attention_block(x) - x
 
         for i, dec_block in enumerate(self.decoder):
             upsample, *blocks = dec_block
