@@ -24,7 +24,7 @@ def get_config():
     data = config.data
     data.dataset = "usf"
     data.image_size = (256, 256)
-    data.num_channels = 3
+    data.num_channels = 1
     data.cache_rate = 0.0
     data.spatial_dims = 2
     data.dir_path = "/work2/jprieto/data/us-famli/save_frame/"

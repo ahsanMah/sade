@@ -21,7 +21,7 @@ def get_config():
 
     data = config.data
     data.dataset = "usf"
-    data.image_size = (256, 256)
+    data.image_size = (400, 400)
     data.num_channels = 1
     data.cache_rate = 0.0
     data.spatial_dims = 2
