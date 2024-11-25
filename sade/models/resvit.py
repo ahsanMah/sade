@@ -3,8 +3,61 @@ from functools import partial
 import numpy as np
 import torch
 import torch.nn as nn
+from pytorch_wavelets import DWTForward, DWTInverse
 
 from . import layers, layerspp, registry
+
+
+class WaveletPatcher(torch.nn.Module):
+
+    def __init__(self, out_channels, levels=2):
+        super().__init__()
+        self.fwd_transform = DWTForward(J=levels, wave="db3", mode="periodization")
+        self.inv_transform = DWTInverse(wave="db3", mode="periodization")
+        # Useful for inverting
+        self.out_channels = c = out_channels
+        self.levels = levels
+        splits = [3 * c * (4**l) for l in range(self.levels - 1, -1, -1)]
+        splits.append(c)
+        self.splits = splits
+
+    def forward(self, x):
+        xll, decomp_list = self.fwd_transform(x)
+        b, c, h, w = xll.shape
+        patches = []
+        for p in decomp_list:
+            b, c, j, hh, ww = p.shape
+            resmult = (hh // h) * (ww // w)
+            patches.append(p.reshape(b, c * j * resmult, h, w))
+
+        patches.append(xll)
+        patches = torch.cat(patches, dim=1).contiguous()
+
+        return patches
+
+    def inverse(self, x):
+        b, *_ = x.shape
+        c = self.out_channels
+
+        # Split channel dimensions to regain spatial dimensions
+        # Separate the low-pass image which is the last image in the split
+        # All high-pass images are collected in the yH list
+        *yH, yLL = torch.split(x, split_size_or_sections=self.splits, dim=1)
+
+        for i in range(self.levels):
+            # Mult by which this img was downsampled
+            # during the forward
+            resmult = 2 ** (self.levels - i - 1)
+
+            p = yH[i]
+            _, _, h, w = p.shape
+            res_at_level = h * resmult
+            yH[i] = p.reshape(b, c, 3, res_at_level, res_at_level)
+
+        # Following the API of DWTInverse
+        # which expects a list of the high-pass images
+        x = self.inv_transform((yLL, yH))
+        return x
 
 
 @registry.register_model(name="resvit")
@@ -75,9 +128,23 @@ class ResidualViT(registry.BaseScoreModel):
 
         # Initialize layers
         self.pool = layerspp.get_pooling_layer(spatial_dims=spatial_dims)
-        self.init_conv = conv_layer(
-            in_channels=self.in_channels, out_channels=self.init_filters
-        )
+        self.dwt_levels = None
+        if "dwt_patching_levels" in config.model and config.model.dwt_patching_levels != 0:
+            self.dwt_levels = config.model.dwt_patching_levels
+            # DWT will handle the final upscaling
+            self.in_channels = config.data.num_channels * 4**self.dwt_levels
+            self.out_channels = self.in_channels
+            self.dwt = WaveletPatcher(
+                out_channels=config.data.num_channels, levels=self.dwt_levels
+            )
+            self.init_conv = nn.Sequential(
+                self.dwt,
+                conv_layer(in_channels=self.in_channels, out_channels=self.init_filters),
+            )
+        else:
+            self.init_conv = conv_layer(
+                in_channels=self.in_channels, out_channels=self.init_filters
+            )
 
         self.time_embed_layer = layerspp.make_time_cond_layers(
             self.time_embedding_sz,
@@ -164,8 +231,11 @@ class ResidualViT(registry.BaseScoreModel):
             for res_block in blocks:
                 x = res_block(x, t_emb)
             # print(f"Computed up-layer {i}: {x.shape}")
-
         x = self.out_conv(x)
+        # print(x.shape)
+
+        if self.dwt_levels is not None:
+            x = self.dwt.inverse(x)
 
         t_sigmas = t_sigmas.reshape((x.shape[0], *([1] * len(x.shape[1:]))))
         x = x / t_sigmas
