@@ -191,14 +191,20 @@ def get_train_transform(config):
             ]
         )
     else:
+        crop_size = config.data.crop_size
         img_size = config.data.image_size
+        assert (
+            img_size[0] <= crop_size[0] and img_size[1] <= crop_size[1]
+        ), f" Crop size = {crop_size} should upper bound image size = {img_size} as image is first (center) cropped, then resized."
+
         return Compose(
             [
                 LoadImaged(
                     "image", image_only=True, converter=lambda image: image.convert("L")
                 ),
                 EnsureChannelFirstd("image"),
-                CenterSpatialCropd("image", roi_size=img_size),
+                CenterSpatialCropd("image", roi_size=crop_size),
+                TorchVisiond("image", "Resize", size=img_size),
                 RandStdShiftIntensityd("image", (-0.03, 0.03)),
                 RandScaleIntensityd("image", (-0.03, 0.03)),
                 RandHistogramShiftd("image", num_control_points=[3, 5]),
@@ -252,14 +258,20 @@ def get_val_transform(config):
             ]
         )
     else:
+        crop_size = config.data.crop_size
         img_size = config.data.image_size
+        assert (
+            img_size[0] <= crop_size[0] and img_size[1] <= crop_size[1]
+        ), f" Crop size = {crop_size} should upper bound image size = {img_size} as image is first (center) cropped, then resized."
+
         return Compose(
             [
                 LoadImaged(
                     "image", image_only=True, converter=lambda image: image.convert("L")
                 ),
                 EnsureChannelFirstd("image"),
-                CenterSpatialCropd("image", roi_size=img_size),
+                CenterSpatialCropd("image", roi_size=crop_size),
+                TorchVisiond("image", "Resize", size=img_size),
                 ScaleIntensityRangePercentilesd(
                     "image",
                     lower=0.01,

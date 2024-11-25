@@ -2,7 +2,7 @@ from sade.configs.default_brain_configs import get_default_configs
 
 
 def get_config():
-   
+
     config = get_default_configs()
     # training
     training = config.training
@@ -21,7 +21,8 @@ def get_config():
 
     data = config.data
     data.dataset = "usf"
-    data.image_size = (400, 400)
+    data.image_size = (384, 384)
+    data.crop_size = (400, 400)
     data.num_channels = 1
     data.cache_rate = 0.0
     data.spatial_dims = 2
@@ -74,5 +75,6 @@ def get_config():
     model.channel_multipliers = [1, 2, 4, 8]
     model.num_attention_heads = 4
     model.dropout = 0.0
+    model.dwt_patching_levels = 0
 
     return config
