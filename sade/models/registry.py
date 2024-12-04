@@ -252,7 +252,7 @@ def get_msma_score_fn(config, score_model, return_norm=True, denoise=False):
         sde,
         score_model,
         train=False,
-        amp=config.training.use_fp16,
+        amp=config.fp16,
     )
 
     timesteps = get_msma_sigmas(config)
