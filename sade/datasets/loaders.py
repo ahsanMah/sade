@@ -34,11 +34,13 @@ def get_image_files_list(dataset_name: str, dataset_dir: str, splits_dir: str):
         with open(file_path) as f:
             image_filenames = [strip(x) for x in f.readlines()]
 
-        if re.match(r"(usf)", dataset_name):
+        if re.match(r"(usf-ge)", dataset_name):
+            file_ext = ".nrrd"
+        elif re.match(r"(usf)", dataset_name):
             file_ext = ".png"
         else:
             file_ext = ".nii.gz"
-        
+
         image_files_list = [
             {"image": os.path.join(dataset_dir, f"{x}{file_ext}")} for x in image_filenames
         ]
@@ -77,7 +79,7 @@ def get_datasets(config, training=False):
         train_file_list = get_image_files_list(train_dataset, dataset_dir, splits_dir)
         val_file_list = get_image_files_list(inlier_dataset, dataset_dir, splits_dir)
 
-        if re.match(r"(lesion)|(brats)|(mslub)", ood_dataset):
+        if re.match(r"(lesion)|(brats)|(mslub)|(msseg)", ood_dataset):
             if "lesion" in ood_dataset:
                 dirname = f"slicer_lesions/{ood_dataset}/{dataset_name.upper()}"
             else:
@@ -136,7 +138,7 @@ def get_dataloaders(
         val_transform = get_val_transform(config)
 
         ood_ds_name = config.eval.experiment.ood.lower()
-        if re.match(r"(lesion)|(brats)|(mslub)", ood_ds_name):
+        if re.match(r"(lesion)|(brats)|(mslub)|(msseg)", ood_ds_name):
             test_transform = get_lesion_transform(config)
         elif re.match(r"tumor", ood_ds_name):
             test_transform = get_tumor_transform(config)

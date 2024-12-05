@@ -197,11 +197,13 @@ def get_train_transform(config):
             img_size[0] <= crop_size[0] and img_size[1] <= crop_size[1]
         ), f" Crop size = {crop_size} should upper bound image size = {img_size} as image is first (center) cropped, then resized."
 
+        loader_kwargs = {}
+        if "grasycale" in config.data and config.data.grayscale:
+            loader_kwargs["converter"] = lambda image: image.convert("L")
+
         return Compose(
             [
-                LoadImaged(
-                    "image", image_only=True, converter=lambda image: image.convert("L")
-                ),
+                LoadImaged("image", image_only=True, **loader_kwargs),
                 EnsureChannelFirstd("image"),
                 CenterSpatialCropd("image", roi_size=crop_size),
                 TorchVisiond("image", "Resize", size=img_size),
@@ -264,11 +266,13 @@ def get_val_transform(config):
             img_size[0] <= crop_size[0] and img_size[1] <= crop_size[1]
         ), f" Crop size = {crop_size} should upper bound image size = {img_size} as image is first (center) cropped, then resized."
 
+        loader_kwargs = {}
+        if "grasycale" in config.data and config.data.grayscale:
+            loader_kwargs["converter"] = lambda image: image.convert("L")
+
         return Compose(
             [
-                LoadImaged(
-                    "image", image_only=True, converter=lambda image: image.convert("L")
-                ),
+                LoadImaged("image", image_only=True, **loader_kwargs),
                 EnsureChannelFirstd("image"),
                 CenterSpatialCropd("image", roi_size=crop_size),
                 TorchVisiond("image", "Resize", size=img_size),
