@@ -198,7 +198,7 @@ def get_train_transform(config):
         ), f" Crop size = {crop_size} should upper bound image size = {img_size} as image is first (center) cropped, then resized."
 
         loader_kwargs = {}
-        if "grasycale" in config.data and config.data.grayscale:
+        if "grayscale" in config.data and config.data.grayscale:
             loader_kwargs["converter"] = lambda image: image.convert("L")
 
         return Compose(
@@ -267,7 +267,7 @@ def get_val_transform(config):
         ), f" Crop size = {crop_size} should upper bound image size = {img_size} as image is first (center) cropped, then resized."
 
         loader_kwargs = {}
-        if "grasycale" in config.data and config.data.grayscale:
+        if "grayscale" in config.data and config.data.grayscale:
             loader_kwargs["converter"] = lambda image: image.convert("L")
 
         return Compose(
