@@ -27,7 +27,7 @@ def test_config():
     config.training = ml_collections.ConfigDict()
     config.training.batch_size = 1
     config.training.sde = "vesde"
-    config.training.use_fp16 = False
+    config.fp16 = False
 
     config.eval = ml_collections.ConfigDict()
     config.eval.batch_size = 1

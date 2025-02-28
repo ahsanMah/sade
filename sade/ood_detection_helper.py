@@ -1,19 +1,21 @@
-import seaborn as sns
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-
-from sklearn.metrics import roc_curve
-from sklearn.metrics import average_precision_score
-from sklearn.metrics import roc_auc_score, precision_recall_curve, auc
-from sklearn.neighbors import NearestNeighbors, KernelDensity
-
-from sklearn.model_selection import GridSearchCV
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-from sklearn.decomposition import FastICA, PCA
-
 import logging
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from sklearn.decomposition import PCA, FastICA
+from sklearn.metrics import (
+    auc,
+    average_precision_score,
+    precision_recall_curve,
+    roc_auc_score,
+    roc_curve,
+)
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KernelDensity, NearestNeighbors
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 def multi_df_stats(df, index):
@@ -59,9 +61,7 @@ def auxiliary_model_analysis(
     if verbose:
         print("---Likelihoods---")
         print("Training: {:.3f}".format(np.median(best_gmm_clf.score_samples(X_train))))
-        print(
-            "{}: {:.3f}".format(labels[1], np.median(best_gmm_clf.score_samples(X_test)))
-        )
+        print("{}: {:.3f}".format(labels[1], np.median(best_gmm_clf.score_samples(X_test))))
 
         for name, ood in zip(labels[2:], outliers):
             print("{}: {:.3f}".format(name, np.median(best_gmm_clf.score_samples(ood))))
@@ -150,11 +150,11 @@ def train_gmm(
     verbose=False,
     pca=False,
 ):
+    from sklearn.decomposition import PCA, FastICA
     from sklearn.mixture import GaussianMixture
     from sklearn.model_selection import GridSearchCV
-    from sklearn.preprocessing import StandardScaler, MinMaxScaler
     from sklearn.pipeline import Pipeline
-    from sklearn.decomposition import FastICA, PCA
+    from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
     def scorer(gmm, X, y=None):
         return np.quantile(gmm.score_samples(X), 0.1)
@@ -223,7 +223,7 @@ def train_kde(X_train, bandwidth_range=[1.0, 1.5, 2.0], verbose=False, pca=False
 
     param_grid = dict(
         KDE__bandwidth=bandwidth_range,
-        KDE__kernel=['gaussian', 'exponential'],
+        KDE__kernel=["gaussian", "exponential"],
     )
     grid = GridSearchCV(
         estimator=kde_clf,

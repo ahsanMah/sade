@@ -5,11 +5,12 @@ import os
 import models.registry as registry
 import numpy as np
 import torch
-import wandb
 from datasets.loaders import get_dataloaders
 from models.ema import ExponentialMovingAverage
 from optim import get_diagnsotic_fn, get_step_fn, optimization_manager
 from torch.utils import tensorboard
+
+import wandb
 
 from .sampling import get_sampling_fn
 from .utils import plot_slices, restore_pretrained_weights, save_checkpoint
@@ -81,7 +82,7 @@ def finetuner(config, workdir):
         optimize_fn=optimize_fn,
         reduce_mean=reduce_mean,
         likelihood_weighting=likelihood_weighting,
-        use_fp16=config.training.use_fp16,
+        use_fp16=config.fp16,
     )
 
     eval_step_fn = get_step_fn(
@@ -90,14 +91,14 @@ def finetuner(config, workdir):
         optimize_fn=optimize_fn,
         reduce_mean=reduce_mean,
         likelihood_weighting=likelihood_weighting,
-        use_fp16=config.training.use_fp16,
+        use_fp16=config.fp16,
     )
 
     diagnsotic_step_fn = get_diagnsotic_fn(
         sde,
         reduce_mean=reduce_mean,
         likelihood_weighting=likelihood_weighting,
-        use_fp16=config.training.use_fp16,
+        use_fp16=config.fp16,
     )
 
     sampling_shape = (

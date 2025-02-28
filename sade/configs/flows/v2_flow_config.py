@@ -8,7 +8,7 @@ def get_config():
 
     config.training.batch_size = 32
     config.training.log_freq = 5
-    config.training.use_fp16 = False
+    config.fp16 = False
 
     eval = config.eval
     eval.batch_size = 32

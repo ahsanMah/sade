@@ -9,8 +9,7 @@ def get_config():
     training = config.training
     training.batch_size = 2
     training.log_freq = 5
-    training.use_fp16 = True
-    training.pretrained_checkpoint = "/ASD/ahsan_projects/braintypicality/workdir/hres/f2-1e4/checkpoints/checkpoint_115.pth"
+    training.pretrained_checkpoint = "/ASD/ahsan_projects/braintypicality/workdir/hres/f2-1e4/checkpoints/checkpoint_130.pth"
 
     eval = config.eval
     eval.batch_size = 2
@@ -18,6 +17,11 @@ def get_config():
     experiment.train = "abcd-val"
     experiment.inlier = "abcd-test"
     experiment.ood = "lesion_load_20-enhanced"
+
+    # msma config
+    msma = config.msma
+    msma.max_timestep = 0.8
+    msma.min_timestep = 0.01
 
     # flow-model
     flow = config.flow
@@ -28,9 +32,10 @@ def get_config():
     flow.global_embedding_size = 512
     flow.input_norm = False
 
-    flow.patch_batch_size = 2048
-    flow.patches_per_train_step = 1<<14
+    flow.patch_batch_size = 2048  # very conservative - could be 16384
+    flow.patches_per_train_step = 16384
     flow.training_kimg = 200
+    flow.training_fast_mode = False
 
     # Config for patch sizes
     flow.local_patch_config = ml_collections.ConfigDict()

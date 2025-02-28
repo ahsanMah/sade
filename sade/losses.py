@@ -1,6 +1,7 @@
-"""All functions related to loss computation.
-"""
+"""All functions related to loss computation."""
+
 import torch
+
 from sade.models.registry import get_score_fn
 
 

@@ -1,4 +1,5 @@
 """Training and evaluation"""
+
 import logging
 import os
 import sys
@@ -25,7 +26,17 @@ flags.DEFINE_string("workdir", None, "Work directory.")
 flags.DEFINE_enum(
     "mode",
     None,
-    ["train", "finetune", "eval", "seg-eval", "score", "sweep", "flow-train", "flow-eval", "inference"],
+    [
+        "train",
+        "finetune",
+        "eval",
+        "seg-eval",
+        "score",
+        "sweep",
+        "flow-train",
+        "flow-eval",
+        "inference",
+    ],
     "Running mode: train or eval",
 )
 flags.DEFINE_string("eval_folder", "eval", "The folder name for storing evaluation results")
@@ -80,7 +91,7 @@ def main(argv):
 
             # Run the training pipeline
             trainer(config, FLAGS.workdir)
-            
+
     elif FLAGS.mode == "finetune":
         with wandb.init(
             project=FLAGS.project,

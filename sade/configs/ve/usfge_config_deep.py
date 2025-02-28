@@ -2,7 +2,6 @@ from sade.configs.default_brain_configs import get_default_configs
 
 
 def get_config():
-
     config = get_default_configs()
     # training
     training = config.training
@@ -38,7 +37,7 @@ def get_config():
     # optimization
     optim = config.optim
     optim.weight_decay = 0.0
-    optim.optimizer = "Adam"
+    optim.optimizer = "AdamW"
     optim.lr = 2e-4
     optim.warmup = 1000
     optim.scheduler = "skip"

@@ -174,7 +174,7 @@ if __name__ == "__main__":
 
     config = biggan_config.get_config()
     config.data.cache_rate = 1.0
-    config.training.use_fp16 = False
+    config.fp16 = False
     config.training.batch_size = 32
     config.training.log_freq = 2
     config.eval.batch_size = 64

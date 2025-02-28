@@ -6,7 +6,25 @@ build-backend = "setuptools.build_meta"
 name = "sade"
 description = "score matching anomaly detection"
 readme = "README.md"
-version = "0.0.1"
+version = "0.1.0"
+dependencies = [
+    "torch>=2.0.0",
+    "wandb==0.16.0",
+    "ml-collections~=1.0.0",
+    "antspyx",
+    "scikit-image",
+    "monai[nibabel]",
+    "normflows",
+    "einops",
+    "FrEIA",
+    "torchvision",
+    "torchinfo",
+    "seaborn",
+    "tqdm"
+]
+
+[project.optional-dependencies]
+dev = ["black", "isort", "pre-commit", "ruff"]
 
 [tool.setuptools.packages.find]
 where = ["."]

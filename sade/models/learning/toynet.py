@@ -1,7 +1,7 @@
-from sade.models import registry, layers, layerspp
-
 import torch
 import torch.nn as nn
+
+from sade.models import layers, layerspp, registry
 
 # from monai.networks.blocks.segresnet_block import (
 # #     get_conv_layer,

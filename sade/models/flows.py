@@ -70,7 +70,7 @@ class PatchFlow(torch.nn.Module):
         self.context_embedding_size = config.flow.context_embedding_size
         self.use_global_context = config.flow.use_global_context
         self.global_embedding_size = config.flow.global_embedding_size
-        self.input_norm = config.flow.input_norm
+        # self.input_norm = config.flow.input_norm
 
         with torch.no_grad():
             # Pooling for local "patch" flow
@@ -178,7 +178,7 @@ class PatchFlow(torch.nn.Module):
                     num_res_blocks,
                     hidden_units,
                     num_context_channels=conditioning_dim,
-                    num_bins=8
+                    num_bins=8,
                     # activation=nn.LeakyReLU(0.2),
                 )
             ]
@@ -194,13 +194,14 @@ class PatchFlow(torch.nn.Module):
         x_norm = self.local_pooler(x_scores)
         self.position_encoder = self.position_encoder.cpu()
         context = self.position_encoder(x_norm)
+        global_context = None
 
         if self.use_global_context:
             global_pooled_image = self.global_pooler(x_batch)
             # Every patch gets the same global context
             global_context = self.global_attention(global_pooled_image)
 
-        if fast and self.use_global_context:
+        if fast:
             zs, log_jac_dets = self.fast_forward(x_norm, context, global_context)
 
         else:
@@ -241,7 +242,7 @@ class PatchFlow(torch.nn.Module):
 
         return zs, log_jac_dets
 
-    def fast_forward(self, x, local_ctx, global_ctx):
+    def fast_forward(self, x, local_ctx, global_ctx=None):
         # (Patches * batch) x channels
         local_ctx = rearrange(local_ctx, "b c h w d -> (h w d) b c")
         patches = rearrange(x, "b c h w d -> (h w d) b c")
@@ -252,7 +253,9 @@ class PatchFlow(torch.nn.Module):
         patches = patches.chunk(nchunks, dim=0)
         ctx_chunks = local_ctx.chunk(nchunks, dim=0)
         zs, jacs = [], []
-        gc = repeat(global_ctx, "b c -> (n b) c", n=self.patch_batch_size)
+
+        if global_ctx is not None:
+            gc = repeat(global_ctx, "b c -> (n b) c", n=self.patch_batch_size)
 
         for p, ctx in zip(patches, ctx_chunks):
             # Check that patch context is same for all batch elements
@@ -262,11 +265,12 @@ class PatchFlow(torch.nn.Module):
             ctx = rearrange(ctx, "n b c -> (n b) c")
             p = rearrange(p, "n b c -> (n b) c")
 
-            # Only needed for the last chunk
-            if len(gc) != len(ctx):
-                c = torch.cat([ctx, gc[: ctx.shape[0]]], dim=1)
-            else:
-                c = torch.cat([ctx, gc], dim=1)
+            if global_ctx is not None:
+                if len(gc) != len(ctx):
+                    # Only needed for the last chunk
+                    c = torch.cat([ctx, gc[: ctx.shape[0]]], dim=1)
+                else:
+                    c = torch.cat([ctx, gc], dim=1)
 
             z, ldj = self.flow.inverse_and_log_det(p, context=c)
 
@@ -307,12 +311,13 @@ class PatchFlow(torch.nn.Module):
         patch_feature = rearrange(patch_feature, "n b c -> (n b) c")
         context_vector = rearrange(context_vector, "n b c -> (n b) c")
 
-        global_pooled_image = flow_model.global_pooler(x_batch)
-        global_context = flow_model.global_attention(global_pooled_image)
-        gctx = repeat(global_context, "b c -> (n b) c", n=n_patches)
+        if flow_model.use_global_context:
+            global_pooled_image = flow_model.global_pooler(x_batch)
+            global_context = flow_model.global_attention(global_pooled_image)
+            gctx = repeat(global_context, "b c -> (n b) c", n=n_patches)
 
-        # Concatenate global context to local context
-        context_vector = torch.cat([context_vector, gctx], dim=1)
+            # Concatenate global context to local context
+            context_vector = torch.cat([context_vector, gctx], dim=1)
 
         z, ldj = flow_model.flow.inverse_and_log_det(
             patch_feature,

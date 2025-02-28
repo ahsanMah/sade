@@ -45,7 +45,7 @@ def get_scheduler(config, optimizer):
     if config.optim.scheduler == "step":
         scheduler = optim.lr_scheduler.StepLR(
             optimizer,
-            step_size=int(0.3 * config.training.n_iters),
+            step_size=int(0.4 * config.training.n_iters),
             gamma=0.3,
             verbose=False,
         )
@@ -58,7 +58,7 @@ def get_scheduler(config, optimizer):
             eta_min=1e-6,
         )
 
-    logging.info("Using scheduler:", scheduler)
+    logging.info(f"Using scheduler: {scheduler.__class__}")
     return scheduler
 
 
@@ -112,7 +112,7 @@ def optimization_manager(state_dict, config):
 
         if step > warmup and scheduler is not None:
             scheduler.step()
-        
+
         optimizer.zero_grad()
 
     return optimize_fn
@@ -192,15 +192,15 @@ def get_step_fn(
                 loss = loss_fn(model, batch)
                 loss.backward()
 
-                if state['train-step'] % gradient_accumulation_factor == 0:
+                if state["train-step"] % gradient_accumulation_factor == 0:
                     optimize_fn(
                         model.parameters(),
                         step=state["step"],
                     )
                     state["ema"].update(model.parameters())
                     state["step"] += 1
-                
-                state['train-step'] += 1
+
+                state["train-step"] += 1
             else:
                 with torch.no_grad():
                     loss = loss_fn(model, batch)

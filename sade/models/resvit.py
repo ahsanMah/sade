@@ -9,7 +9,6 @@ from . import layers, layerspp, registry
 
 
 class WaveletPatcher(torch.nn.Module):
-
     def __init__(self, out_channels, levels=2):
         super().__init__()
         self.fwd_transform = DWTForward(J=levels, wave="db3", mode="periodization")
@@ -202,7 +201,6 @@ class ResidualViT(registry.BaseScoreModel):
         )
 
     def forward(self, x, t_sigmas):
-
         t_emb = torch.log(t_sigmas)
         t_emb = self.time_embed_layer(t_emb)
         x = self.init_conv(x)

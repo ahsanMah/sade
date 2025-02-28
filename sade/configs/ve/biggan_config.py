@@ -1,6 +1,7 @@
 """Training NCSN++ on Brains with VE SDE.
-   Keeping it consistent with CelebaHQ config from Song
+Keeping it consistent with CelebaHQ config from Song
 """
+
 from sade.configs.default_brain_configs import get_default_configs
 
 
@@ -22,7 +23,6 @@ def get_config():
     data.num_channels = 2
     data.cache_rate = 0.0
     data.dir_path = "/DATA/Users/amahmood/braintyp/processed_v2/"
-    data.splits_dir = "/codespace/sade/sade/datasets/brains/"
 
     evaluate = config.eval
     evaluate.sample_size = 8

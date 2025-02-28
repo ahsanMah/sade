@@ -21,13 +21,13 @@ def get_config():
     training.pretrain_dir = "workdir/test/pretrain/"
 
     data = config.data
-    data.dataset="testing"
+    data.dataset = "testing"
     data.image_size = (48, 64, 40)
     data.spacing_pix_dim = 4.0
     data.num_channels = 2
     data.cache_rate = 0.0
-    data.spatial_dims= 3
-    
+    data.spatial_dims = 3
+
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     dir_path = os.path.join(cur_dir, "..", "..", "..", "tests", "dummy_data")
     data.dir_path = os.path.abspath(dir_path)
@@ -76,7 +76,7 @@ def get_config():
     model.embedding_type = "fourier"
     model.fourier_scale = 2.0
     model.learnable_embedding = False
-    model.channel_multipliers = [1,2]
-    model.num_attention_heads= 2
+    model.channel_multipliers = [1, 2]
+    model.num_attention_heads = 2
 
     return config

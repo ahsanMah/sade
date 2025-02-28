@@ -1,4 +1,5 @@
 import ml_collections
+
 from sade.configs.ve.biggan_config import get_config as get_default_config
 
 
@@ -14,7 +15,6 @@ def get_config():
     flow.context_embedding_size = 128
     flow.use_global_context = True
     flow.global_embedding_size = 512
-
 
     flow.patch_batch_size = 32
     flow.patches_per_train_step = 2

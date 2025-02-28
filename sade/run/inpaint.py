@@ -235,7 +235,7 @@ if __name__ == "__main__":
     workdir = sys.argv[1]
 
     config = biggan_config.get_config()
-    config.training.use_fp16 = True
+    config.fp16 = True
     config.eval.batch_size = 1
     experiment = config.eval.experiment
     experiment.train = "abcd-val"  # The dataset used for training MSMA

@@ -1,6 +1,7 @@
 """Training NCSN++ on Brains with VE SDE.
-   Keeping it consistent with CelebaHQ config from Song
+Keeping it consistent with CelebaHQ config from Song
 """
+
 from sade.configs.default_brain_configs import get_default_configs
 
 

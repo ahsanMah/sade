@@ -17,6 +17,7 @@ docker run \
 	--mount type=bind,src=/ASD/ahsan_projects/braintypicality/workdir/,target=/workdir/ \
 	--mount type=bind,src="/BEE/Connectome/ABCD/",target=/DATA \
 	--mount type=bind,src="/ASD/",target=/ASD \
+	--mount type=bind,src="/ASD2/",target=/ASD2 \
 	--mount type=bind,src="/UTexas",target=/UTexas \
 	--mount type=bind,src="/work2",target=/work2/ \
 	--mount type=bind,src=$CODESPACE,target=/codespace \

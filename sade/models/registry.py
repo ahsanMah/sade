@@ -1,5 +1,4 @@
-"""All functions and modules related to model definition.
-"""
+"""All functions and modules related to model definition."""
 
 import logging
 

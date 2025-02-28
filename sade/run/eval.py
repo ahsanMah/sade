@@ -3,6 +3,7 @@ import logging
 import os
 import re
 
+import ants
 import models.registry as registry
 import numpy as np
 import torch
@@ -10,6 +11,7 @@ from datasets.loaders import get_dataloaders
 from tqdm import tqdm
 
 from sade.metrics import (
+    auto_compute_thresholds,
     compute_segmentation_metrics,
     erode_brain_masks,
     get_best_thresholds,
@@ -139,7 +141,7 @@ def evaluator(config, workdir):
     print(results["GMM"]["metrics"])
 
 
-def segmentation_evaluator(config, workdir):
+def segmentation_evaluator_v1(config, workdir):
     config.device = torch.device("cpu")
     experiment = config.eval.experiment
     experiment_name = f"{experiment.inlier}_{experiment.ood}"
@@ -217,3 +219,150 @@ def segmentation_evaluator(config, workdir):
     metrics_df = compute_segmentation_metrics(post_proc_preds, post_proc_labels)
     metrics_df.to_csv(f"{workdir}/{experiment_name}_seg_eval.csv")
     print(metrics_df.dropna().describe())
+
+
+def segmentation_evaluator(config, workdir):
+    config.training.batch_size = 1
+    config.eval.batch_size = 1
+    config.data.cache_rate = 0.0
+    experiment = config.eval.experiment
+    dataset_name = experiment.ood
+    expid = experiment.id
+
+    workdir = f"{workdir}/experiments/{expid}"
+    assert os.path.exists(
+        workdir
+    ), f"Could not find experiment directory: {workdir}.\
+        Please make sure the heatmaps are pre-computed in experiment directory."
+
+    if "-enhanced" in experiment.ood:
+        experiment.ood = experiment.ood.split("-")[0]
+
+    _, datasets = get_dataloaders(
+        config, evaluation=True, num_workers=1, infinite_sampler=False
+    )
+    *_, ood_ds = datasets
+
+    fpaths = glob.glob(f"{workdir}/{dataset_name}/*.npz")
+    post_proc_preds_at_fpr10 = []
+    post_proc_preds_at_fpr05 = []
+    post_proc_labels = []
+
+    # Compute segmentation predicitons
+    if not os.path.exists(f"{workdir}/autothresholds.npy"):
+        print("Computing automatic thresholds ...")
+        compute_auto_thresholds(config, workdir)
+
+    autothresh = np.load(f"{workdir}/autothresholds.npy", allow_pickle=True).item()
+
+    for i, fname in enumerate(tqdm(fpaths)):
+        data = np.load(fname)
+        #     x = data['original'] + 1
+        xdict = ood_ds[i]
+        x = xdict["image"]
+        brain_mask = (x > x.min()).sum(axis=0).bool().numpy()
+        brain_mask = ants.from_numpy(brain_mask).astype("float32")
+        eroded_brain_mask = (
+            ants.morphology(
+                brain_mask,
+                operation="erode",
+                radius=2,
+                mtype="binary",
+                shape="ball",
+                value=1,
+                radius_is_parametric=True,
+            )
+            .numpy()
+            .astype(float)
+        )
+
+        #     gt = (data['segmentation'] > 0) * eroded_brain_mask
+        gt = (xdict["label"][0]) * eroded_brain_mask
+        gt = post_processing(gt, min_component_size=3)
+        post_proc_labels.append(gt)
+
+        pred_scores = data["heatmap"]
+        pred_scores = (pred_scores - pred_scores.min()) * eroded_brain_mask
+
+        pred = post_processing(
+            pred_scores > autothresh["thresh_fpr10"], dilate=True, min_component_size=3
+        )
+        post_proc_preds_at_fpr10.append(pred)
+
+        pred = post_processing(
+            pred_scores > autothresh["thresh_fpr05"], dilate=True, min_component_size=3
+        )
+        post_proc_preds_at_fpr05.append(pred)
+
+    # Save the predictions
+    post_proc_preds_at_fpr05 = np.stack(post_proc_preds_at_fpr05)
+    post_proc_preds_at_fpr10 = np.stack(post_proc_preds_at_fpr10)
+    post_proc_labels = np.stack(post_proc_labels)
+    np.savez_compressed(
+        f"{workdir}/{dataset_name}_segs.npz",
+        **{
+            "preds_fpr05": post_proc_preds_at_fpr05,
+            "preds_fpr10": post_proc_preds_at_fpr10,
+            "labels": post_proc_labels,
+        },
+    )
+
+    # Compute performance metrics
+    for fpr, preds in zip(
+        ["fpr05", "fpr10"], [post_proc_preds_at_fpr05, post_proc_preds_at_fpr10]
+    ):
+        experiment_name = f"{dataset_name}-{fpr}"
+        print(experiment_name)
+        metrics_df = compute_segmentation_metrics(preds, post_proc_labels)
+        metrics_df.to_csv(f"{workdir}/{experiment_name}_seg_eval.csv")
+        print(metrics_df.dropna().describe())
+
+
+def compute_auto_thresholds(config, experiment_dir):
+    exp = config.eval.experiment
+    inlier_ds = [exp.train, exp.inlier]
+    savedir = f"{experiment_dir}/inliers-flat-post-proc/"
+    os.makedirs(savedir, exist_ok=True)
+
+    # Compute inlier heatmaps
+    for ds in inlier_ds:
+        dirname = f"{experiment_dir}/{ds}"
+        samples = glob.glob(f"{dirname}/*.npz")
+        for fname in tqdm(samples):
+            with np.load(fname) as data:
+                sid = fname.split("/")[-1].split(".npz")[0]
+                heatmap = data["heatmap"]
+                ximg = ants.from_numpy(data["original"][0] + 1) / 2
+                brain_mask = (ximg > 0).astype("float32")
+                eroded_mask = (
+                    ants.morphology(
+                        brain_mask,
+                        operation="erode",
+                        radius=2,
+                        mtype="binary",
+                        shape="ball",
+                        value=1,
+                        radius_is_parametric=True,
+                    )
+                    .numpy()
+                    .astype(bool)
+                )
+                anomaly_scores = (heatmap - heatmap.min()) * eroded_mask
+                x = anomaly_scores[anomaly_scores.nonzero()]
+                np.savez_compressed(f"{savedir}/{sid}.npz", x)
+
+    # Load inlier samples and compute thresholds
+    samples = glob.glob(f"{savedir}/*")
+    arr = []
+    for fname in tqdm(samples):
+        with np.load(fname) as data:
+            arr.append(data["arr_0"])
+
+    arr = np.concatenate(arr).reshape(-1)
+
+    thresh_fpr10 = auto_compute_thresholds(training_samples=arr, false_positive_rate=0.1)
+    thresh_fpr05 = auto_compute_thresholds(training_samples=arr, false_positive_rate=0.05)
+    np.save(
+        f"{experiment_dir}/autothresholds.npy",
+        {"thresh_fpr05": thresh_fpr05, "thresh_fpr10": thresh_fpr10},
+    )

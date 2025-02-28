@@ -58,6 +58,9 @@ def inference(config, workdir):
     scorer = registry.get_msma_score_fn(
         config, score_model, return_norm=False, denoise=config.msma.denoise
     )
+    score_normer = registry.get_msma_score_fn(
+        config, score_model, return_norm=True, denoise=config.msma.denoise
+    )
     logging.info(f"Loaded score model from checkpoint {checkpoint_step:d}...")
 
     # Initialize flow model
@@ -100,6 +103,11 @@ def inference(config, workdir):
     with open(f"{save_dir}/model_states.json", "w") as f:
         json.dump(model_states, fp=f)
 
+    enhance_lesions = False
+    if "-enhanced" in experiment.ood:
+        enhance_lesions = True
+        experiment.ood = experiment.ood.split("-")[0]
+
     dsnames = [experiment.train, experiment.inlier, experiment.ood]
     _, datasets = get_dataloaders(
         config,
@@ -110,6 +118,8 @@ def inference(config, workdir):
     )
 
     for name, ds in zip(dsnames, datasets):
+        if "lesion" in name and enhance_lesions:
+            name += "-enhanced"
 
         os.makedirs(f"{save_dir}/{name}/", exist_ok=True)
 
@@ -117,15 +127,20 @@ def inference(config, workdir):
             fname = os.path.basename(ds.data[i]["image"])
             sampleid = fname.split(".")[0]
             x = xdict["image"].to(config.device).unsqueeze(0)
+
+            if "lesion" in name and enhance_lesions:
+                labels = xdict["label"].to(config.device)
+                x = x * labels * 1.5 + x * (1 - labels)
+
             scores = scorer(x)
             heatmap = -flownet.log_density(scores, x, fast=True)
             background_mask = (x > x.min()).sum(1)
             heatmap = heatmap * background_mask
 
-            x = x.squeeze().cpu().numpy()
+            score_norms = score_normer(x).cpu().numpy()
             heatmap = heatmap.squeeze().cpu().numpy()
             scores = scores.squeeze().cpu().numpy()
-            score_norms = np.linalg.norm(scores.reshape(scores.shape[0], -1), axis=1)
+            x = x.squeeze().cpu().numpy()
             save_dict = dict(
                 original=x,
                 heatmap=heatmap,
@@ -135,8 +150,5 @@ def inference(config, workdir):
             if "label" in xdict:
                 save_dict["segmentation"] = xdict["label"].cpu().squeeze(0)
 
-            np.savez_compressed(
-                f"{save_dir}/{name}/{sampleid}.npz",
-                **save_dict
-            )
+            np.savez_compressed(f"{save_dir}/{name}/{sampleid}.npz", **save_dict)
             torch.cuda.empty_cache()

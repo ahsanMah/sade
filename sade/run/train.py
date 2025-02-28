@@ -81,7 +81,7 @@ def trainer(config, workdir):
         config,
         evaluation=False,
         ood_eval=False,
-        num_workers=8,
+        num_workers=4,
         infinite_sampler=True,
     )
 

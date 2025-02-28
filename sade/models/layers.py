@@ -1,5 +1,5 @@
-"""Common layers for defining score-based networks.
-"""
+"""Common layers for defining score-based networks."""
+
 import math
 
 import numpy as np

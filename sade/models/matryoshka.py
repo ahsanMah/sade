@@ -73,6 +73,12 @@ class SingleMatryoshka(registry.BaseScoreModel):
         self.inner_model_config = config.inner_model
         self.data_channels = config.data.num_channels
         self.inner_unet = load_model_from_config(self.inner_model_config)
+
+        if not config.model.trainable_inner_model:
+            self.inner_unet.requires_grad_(False)
+            # Rescaling will be done by outer model
+            self.inner_unet.scale_by_sigma = False
+
         self.init_filters = config.model.nf
         self.pool = torch.nn.AvgPool3d(kernel_size=3, stride=2, padding=1)
         self.pad = functools.partial(torch.nn.functional.pad, pad=(0, 0, 4, 4, 4, 4))

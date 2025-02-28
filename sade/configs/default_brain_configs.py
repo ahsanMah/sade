@@ -13,7 +13,7 @@ def get_default_configs():
     training.snapshot_freq = 10000
     training.log_freq = 100
     training.eval_freq = 500
-    # training.use_fp16 = False
+
     ## store additional checkpoints for preemption in cloud computing environments
     training.snapshot_freq_for_preemption = 1000
     ## produce samples at each snapshot.
@@ -97,6 +97,7 @@ def get_default_configs():
     flow.context_embedding_size = 128
     flow.use_global_context = True
     flow.global_embedding_size = 512
+    flow.training_fast_mode = False
 
     # Config for patch sizes
     flow.local_patch_config = ml_collections.ConfigDict()

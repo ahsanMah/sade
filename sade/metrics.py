@@ -349,6 +349,8 @@ def compute_segmentation_metrics(pred_labels, true_labels):
             "segmentation_components",
             "hausdorff",
             "mean_surf_dist",
+            "dice",
+            "IOL",  # intersection-over-lesion
         ]
     )
 
@@ -378,6 +380,11 @@ def compute_segmentation_metrics(pred_labels, true_labels):
 
         perf_dict["hausdorff"] = hauss_ref_to_pred.item()
         perf_dict["mean_surf_dist"] = mean_surf_dist.item()
+
+        dsc, iol = dice(pred, lab)
+        perf_dict["dice"] = dsc
+        perf_dict["IOL"] = iol
+
         metrics_df.loc[sample_idx] = perf_dict
 
     metrics_df["TPR"] = metrics_df.TP / metrics_df.ground_truth_components
@@ -386,12 +393,14 @@ def compute_segmentation_metrics(pred_labels, true_labels):
 
     return metrics_df
 
+
 """
 From wikipedia: https://en.wikipedia.org/wiki/Golden-section_search
 Python program for golden section search.  This implementation
 does not reuse function evaluations and assumes the minimum is c
 or d (not on the edges at a or b)
 """
+
 
 def gss(f, a, b, tolerance=1e-5):
     """
@@ -421,7 +430,6 @@ def gss(f, a, b, tolerance=1e-5):
 
 
 def auto_compute_thresholds(training_samples, false_positive_rate):
-
     def optimization_fn(thresh):
         fpr_at_thresh = (training_samples > thresh).mean()
         dist = np.sqrt((false_positive_rate - fpr_at_thresh) ** 2)
@@ -429,4 +437,33 @@ def auto_compute_thresholds(training_samples, false_positive_rate):
 
     return gss(
         optimization_fn, training_samples.min(), training_samples.max(), tolerance=1e-5
+    )
+
+
+def dice(im1, im2):
+    """
+    Computes Dice score for two images
+
+    Parameters
+    ==========
+    im1: Numpy Array/Matrix; Predicted segmentation in matrix form
+    im2: Numpy Array/Matrix; Ground truth segmentation in matrix form
+
+    Output
+    ======
+    dice_score: Dice score between two images
+    """
+
+    im1 = np.asarray(im1).astype(bool)
+    im2 = np.asarray(im2).astype(bool)
+
+    if im1.shape != im2.shape:
+        raise ValueError("Shape mismatch: im1 and im2 must have the same shape.")
+
+    # Compute Dice coefficient
+    intersection = np.logical_and(im1, im2)
+
+    return (
+        2.0 * (intersection.sum()) / (im1.sum() + im2.sum()),
+        intersection.sum() / im2.sum(),
     )

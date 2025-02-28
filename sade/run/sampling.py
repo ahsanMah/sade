@@ -1,6 +1,7 @@
 """Various sampling methods. Modiifed from
 https://github.com/yang-song/score_sde_pytorch/blob/cb1f359f4aadf0ff9a5e122fe8fffc9451fd6e44/sampling.py
 """
+
 import abc
 import functools
 
@@ -214,9 +215,7 @@ class AncestralSamplingPredictor(Predictor):
         )
         score = self.score_fn(x, t)
         x_mean = x + score * (sigma**2 - adjacent_sigma**2)[:, None, None, None]
-        std = torch.sqrt(
-            (adjacent_sigma**2 * (sigma**2 - adjacent_sigma**2)) / (sigma**2)
-        )
+        std = torch.sqrt((adjacent_sigma**2 * (sigma**2 - adjacent_sigma**2)) / (sigma**2))
         noise = torch.randn_like(x)
         x = x_mean + std[:, None, None, None] * noise
         return x, x_mean

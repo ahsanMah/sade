@@ -1,5 +1,4 @@
-"""Layers for defining NCSN++.
-"""
+"""Layers for defining NCSN++."""
 
 from typing import Any, Tuple, Union
 
@@ -74,7 +73,6 @@ def get_upsample_layer(
     interp_mode=InterpolateMode.LINEAR,
     scale_factor: int = 2,
 ):
-
     return UpSample(
         spatial_dims=spatial_dims,
         in_channels=in_channels,

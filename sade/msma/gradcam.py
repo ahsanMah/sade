@@ -65,7 +65,7 @@ def run(config, workdir):
     # Initialize main model.
 
     n_timesteps = config.msma.n_timesteps = 10
-    config.model.act = "relu" # This is important for the guided backpropagation to work
+    config.model.act = "relu"  # This is important for the guided backpropagation to work
     score_model = registry.create_model(config, distributed=False)
     timesteps = registry.get_msma_sigmas(config)
 
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     workdir = sys.argv[1]
 
     config = biggan_config.get_config()
-    config.training.use_fp16 = False
+    config.fp16 = False
     experiment = config.eval.experiment
     experiment.train = "abcd-val"  # The dataset used for training MSMA
     experiment.inlier = "abcd-test"

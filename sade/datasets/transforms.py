@@ -23,10 +23,7 @@ from monai.transforms.intensity.dictionary import (
 from monai.transforms.io.dictionary import LoadImaged
 from monai.transforms.smooth_field.dictionary import RandSmoothFieldAdjustIntensityd
 from monai.transforms.spatial.array import RandDeformGrid, Resample
-from monai.transforms.spatial.dictionary import (
-    RandAffined,
-    Spacingd,
-)
+from monai.transforms.spatial.dictionary import RandAffined, Spacingd
 from monai.transforms.transform import Randomizable, Transform
 from monai.transforms.utility.dictionary import (
     EnsureChannelFirstd,
@@ -156,7 +153,6 @@ class RandTumor(Randomizable, Transform):
 
 
 def get_train_transform(config):
-
     if config.data.spatial_dims == 3:
         spacing = [config.data.spacing_pix_dim] * 3
         return Compose(

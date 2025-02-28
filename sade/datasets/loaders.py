@@ -1,4 +1,5 @@
 """Return training and evaluation/test datasets from config files."""
+
 import functools
 import glob
 import logging
@@ -17,7 +18,7 @@ from sade.datasets.transforms import (
 
 
 def get_image_files_list(dataset_name: str, dataset_dir: str, splits_dir: str):
-    if re.match(r"(lesion)|(brats)|(mslub)", dataset_name):
+    if re.match(r"(lesion)|(brats)|(mslub)|(msseg)", dataset_name):
         image_files_list = [
             {"image": p, "label": p.replace(".nii.gz", "_label.nii.gz")}
             for p in glob.glob(f"{dataset_dir}/**/*.nii.gz", recursive=True)
@@ -171,7 +172,7 @@ def get_dataloaders(
     test_ds = CacheDataset(
         test_file_list,
         transform=test_transform,
-        cache_rate=cache_rate,
+        cache_rate=0.0,
         num_workers=num_workers,
         progress=True,
     )
@@ -183,7 +184,7 @@ def get_dataloaders(
             train_ds,
             batch_size=config.training.batch_size,
             num_workers=num_workers,
-            pin_memory=True,
+            pin_memory=False,
             prefetch_factor=2,
             persistent_workers=num_workers > 0,
             sampler=inf_sampler(train_ds) if infinite_sampler else None,
@@ -194,7 +195,7 @@ def get_dataloaders(
         batch_size=config.eval.batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=num_workers > 0,
+        # pin_memory=num_workers > 0,
         sampler=inf_sampler(eval_ds) if infinite_sampler else None,
     )
 
@@ -203,7 +204,7 @@ def get_dataloaders(
         batch_size=config.eval.batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=num_workers > 0,
+        # pin_memory=num_workers > 0,
         sampler=inf_sampler(test_ds) if infinite_sampler else None,
     )
 

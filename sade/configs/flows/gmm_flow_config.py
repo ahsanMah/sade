@@ -6,16 +6,20 @@ from sade.configs.ve.biggan_config import get_config as get_default_config
 def get_config():
     config = get_default_config()
 
-    config.training.batch_size = 32
+    config.training.batch_size = 2
     config.training.log_freq = 5
-    config.training.use_fp16 = False
+    config.fp16 = False
 
     eval = config.eval
-    eval.batch_size = 32
+    eval.batch_size = 2
     experiment = eval.experiment
     experiment.train = "abcd-val"
     experiment.inlier = "abcd-test"
     experiment.ood = "lesion_load_20-enhanced"
+
+    msma = config.msma
+    msma.min_timestep = 0.01
+    msma.max_timestep = 0.8
 
     # flow-model
     flow = config.flow
@@ -26,9 +30,10 @@ def get_config():
     flow.global_embedding_size = 512
     flow.input_norm = False
 
-    flow.patch_batch_size = 32
-    flow.patches_per_train_step = 1024
-    flow.training_kimg = 200
+    flow.patch_batch_size = 16384
+    flow.patches_per_train_step = 16384
+    flow.training_kimg = 300
+    flow.lr = 3e-4
 
     # Config for patch sizes
     flow.local_patch_config = ml_collections.ConfigDict()

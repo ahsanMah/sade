@@ -1,6 +1,7 @@
 """Training NCSN++ on Brains with VE SDE.
-   Keeping it consistent with CelebaHQ config from Song
+Keeping it consistent with CelebaHQ config from Song
 """
+
 from sade.configs.default_brain_configs import get_default_configs
 from sade.configs.ve.biggan_config import get_config as inner_config
 
@@ -13,7 +14,7 @@ def get_config():
     training.reduce_mean = True
     training.batch_size = 4
     training.sampling_freq = 10000
-    training.n_iters = 1500001
+    training.n_iters = 1_500_001
     training.pretrain_dir = (
         "/ASD/ahsan_projects/braintypicality/workdir/cuda_opt/learnable/checkpoints-meta/"
     )
@@ -25,7 +26,7 @@ def get_config():
     data.num_channels = 2
     data.cache_rate = 0.0
     data.dir_path = "/DATA/Users/amahmood/braintyp/processed_v2/"
-    data.splits_dir = "/codespace/sade/sade/datasets/brains/"
+    data.splits_dir = "/ASD/ahsan_projects/Developer/braintypicality-scripts/split-keys/"
     data.ood_ds = "lesion_load_20"
 
     evaluate = config.eval
@@ -62,6 +63,7 @@ def get_config():
     model.embedding_type = "fourier"
     model.fourier_scale = 2.0
     model.learnable_embedding = True
+    model.trainable_inner_model = True
 
     model.sigma_max = 1508
     model.sigma_min = 0.09

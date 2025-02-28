@@ -53,7 +53,9 @@ class MultivariateNormal(nn.Module):
     def __init__(self, input_dims, low_rank_dims=128):
         super().__init__()
 
-        self.cov_factor = nn.Parameter(torch.randn(input_dims, low_rank_dims), requires_grad=True)
+        self.cov_factor = nn.Parameter(
+            torch.randn(input_dims, low_rank_dims), requires_grad=True
+        )
         self.cov_diag = nn.Parameter(torch.ones(input_dims), requires_grad=True)
         self.mean = nn.Parameter(torch.zeros(input_dims), requires_grad=False)
 
@@ -61,7 +63,7 @@ class MultivariateNormal(nn.Module):
         return LowRankMultivariateNormal(
             loc=self.mean, cov_factor=self.cov_factor, cov_diag=self.diag
         ).log_prob(x)
-    
+
     @property
     def diag(self):
         return torch.nn.functional.softplus(self.cov_diag) + 1e-5
@@ -71,7 +73,8 @@ class MultivariateNormal(nn.Module):
         return LowRankMultivariateNormal(
             loc=self.mean, cov_factor=self.cov_factor, cov_diag=self.diag
         ).covariance_matrix
-    
+
+
 class FlowModel(nn.Module):
     def __init__(self, n_timesteps, num_blocks=20, device="cpu"):
         super().__init__()
@@ -82,11 +85,12 @@ class FlowModel(nn.Module):
 
     def init_weights(self):
         # Initialize weights with Xavier
-        linear_modules = list(filter(lambda m: isinstance(m, nn.Linear), self.flow.modules()))
+        linear_modules = list(
+            filter(lambda m: isinstance(m, nn.Linear), self.flow.modules())
+        )
         total = len(linear_modules)
         # pdb.set_trace()
         for idx, m in enumerate(linear_modules):
-            
             # Last layer gets init w/ zeros
             if idx == total - 1:
                 nn.init.zeros_(m.weight.data)
@@ -103,8 +107,6 @@ class FlowModel(nn.Module):
     @torch.inference_mode()
     def score(self, x):
         return -self.forward(x)
-    
-
 
 
 def train(config, workdir):
@@ -287,7 +289,7 @@ if __name__ == "__main__":
     workdir = sys.argv[1]
 
     config = biggan_config.get_config()
-    config.training.use_fp16 = True
+    config.fp16 = True
     config.training.batch_size = 32
     config.eval.batch_size = 32
     config.flow.training_kimg = 50
