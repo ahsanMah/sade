@@ -21,11 +21,13 @@ def get_config():
     training.pretrain_dir = "workdir/test/pretrain/"
 
     data = config.data
+    data.dataset="testing"
     data.image_size = (48, 64, 40)
     data.spacing_pix_dim = 4.0
     data.num_channels = 2
     data.cache_rate = 0.0
-
+    data.spatial_dims= 3
+    
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     dir_path = os.path.join(cur_dir, "..", "..", "..", "tests", "dummy_data")
     data.dir_path = os.path.abspath(dir_path)
@@ -55,15 +57,14 @@ def get_config():
 
     # model
     model = config.model
-    model.num_scales = 10
-    model.name = "ncsnpp3d"
+    model.name = "resvit"
     model.resblock_type = "biggan"
     model.act = "memswish"
     model.scale_by_sigma = True
     model.ema_rate = 0.9999
     model.nf = 8
     model.norm_num_groups = 2
-    model.blocks_down = (1, 2, 1)
+    model.blocks_down = (1, 2)
     model.blocks_up = (1, 1)
     model.time_embedding_sz = 32
     model.init_scale = 0.0
@@ -75,5 +76,7 @@ def get_config():
     model.embedding_type = "fourier"
     model.fourier_scale = 2.0
     model.learnable_embedding = False
+    model.channel_multipliers = [1,2]
+    model.num_attention_heads= 2
 
     return config

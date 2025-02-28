@@ -17,7 +17,6 @@ def get_config():
     training.snapshot_freq_for_preemption = 1000
     training.sampling_freq = 50_000
     training.load_pretrain = False
-    training.pretrain_dir = "workdir/test/pretrain/"
 
     data = config.data
     data.dataset = "usf"
@@ -66,7 +65,7 @@ def get_config():
     model.num_scales = 1000
     # Conv-kernels
     model.conv_size = 3
-    model.init_scale = 1.0
+    model.init_scale = 0.0
     model.act = "memswish"
     # enc-dec-blocks related
     model.nf = 32

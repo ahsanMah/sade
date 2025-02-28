@@ -10,25 +10,23 @@ def get_config():
     training.continuous = True
     training.likelihood_weighting = False
     training.reduce_mean = True
-    training.batch_size = 32
-    training.n_iters = 500_000
+    training.batch_size = 64
+    training.n_iters = 1_500_000
     training.log_freq = 100
     training.eval_freq = 500
     training.snapshot_freq_for_preemption = 1000
     training.sampling_freq = 100_000
-    training.load_pretrain = True
-    training.pretrained_checkpoint = (
-        "/ASD/ahsan_projects/us-families/v2-dwt/checkpoints/checkpoint_100.pth"
-    )
+    training.load_pretrain = False
 
     data = config.data
-    data.dataset = "usf-ge"
+    data.dataset = "usf-butterfly"
+    data.grayscale = True
     data.image_size = (256, 256)
-    data.crop_size = (256, 256)
+    data.crop_size = (400, 400)
     data.num_channels = 1
     data.cache_rate = 0.0
     data.spatial_dims = 2
-    data.dir_path = "/work2/jprieto/data/us-famli/extract_frames_blind_sweeps/dataset_C1_cines_masked_resampled_256_spc075_uuids/"
+    data.dir_path = "/work2/jprieto/data/us-famli/save_frame/"
     data.splits_dir = "/ASD/ahsan_projects/Developer/braintypicality-scripts/split-keys"
 
     evaluate = config.eval
@@ -39,8 +37,8 @@ def get_config():
     optim = config.optim
     optim.weight_decay = 0.0
     optim.optimizer = "Adam"
-    optim.lr = 2e-4
-    optim.warmup = 1000
+    optim.lr = 1e-4
+    optim.warmup = 10_000
     optim.scheduler = "skip"
 
     # sampling
