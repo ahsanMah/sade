@@ -1,9 +1,8 @@
 #!/bin/bash
 
-NAME="sade"
-PORT=9990
-CODESPACE=/GROND_STOR/amahmood/workspace/
-#CODESPACE=/ASD/ahsan_projects/test/
+NAME="usf-sade"
+PORT=9090
+CODESPACE=/ASD/ahsan_projects/Developer/
 
 docker stop $NAME-docker || true # Exits gracefully if container doesnt exist
 
@@ -19,8 +18,9 @@ docker run \
 	--mount type=bind,src="/BEE/Connectome/ABCD/",target=/DATA \
 	--mount type=bind,src="/ASD/",target=/ASD \
 	--mount type=bind,src="/UTexas",target=/UTexas \
+	--mount type=bind,src="/work2",target=/work2/ \
 	--mount type=bind,src=$CODESPACE,target=/codespace \
 	-p $PORT:8888 \
-	-p 6006:6006 \
 	$USER/pytorch_sde:latest \
 	jupyter lab --ip 0.0.0.0 --notebook-dir=/ --no-browser --allow-root
+	# -p 6006:6006 \
